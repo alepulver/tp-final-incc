@@ -1,4 +1,4 @@
-import book
+from book_classification import book
 import os
 from nose.tools import *
 

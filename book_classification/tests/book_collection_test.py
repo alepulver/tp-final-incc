@@ -1,5 +1,4 @@
-import book
-import book_collection
+from book_classification import book, book_collection
 import os
 from nose.tools import *
 
