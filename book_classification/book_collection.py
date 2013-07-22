@@ -1,12 +1,17 @@
 class BookCollection:
 	def __init__(self, books):
-		self.books = books
+		self.books = set(books)
 
 		self.authors = {}
 		for b in self.books:
 			if b.author not in self.authors:
 				self.authors[b.author] = set()
 			self.authors[b.author].add(b)
+
+	def __len__(self):
+		return len(self.books)
+	def __iter__(self):
+		return iter(self.books)
 
 	def filter(self, condition):
 		return BookCollection(filter(condition, self.books))
