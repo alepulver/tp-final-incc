@@ -31,3 +31,8 @@ def test_ShouldCreateABookFromZip():
 	aBookPathZip = os.path.join(path_to_books, "pg1465.zip")
 	aBook = book.Book.from_file_path(aBookPathZip)
 	equals_mybook(aBook)
+
+def test_BookFromFileShouldHavePath():
+	aBookPath = os.path.join(path_to_books, "pg1465.txt")
+	aBook = book.Book.from_file_path(aBookPath)
+	eq_(aBook.path, aBookPath)

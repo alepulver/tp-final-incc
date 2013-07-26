@@ -1,3 +1,5 @@
+import random
+
 class BookCollection:
 	def __init__(self, books):
 		self.books = set(books)
@@ -27,6 +29,14 @@ class BookCollection:
 				books_two.add(b)
 
 		return BookCollection(books_one), BookCollection(books_two)
+
+	def sample_authors(self, n):
+		# FIXME: make deterministic while allowing to change seed
+		random.seed(123)
+		authors = set(random.sample(sorted(self.authors.keys()), n))
+		def condition(book):
+			return book.author in authors
+		return self.filter(condition)
 
 	def only_authors_with_or_more_than(self, n):
 		def condition(book):

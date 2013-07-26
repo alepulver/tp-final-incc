@@ -36,3 +36,10 @@ def test_ShouldPartitionByAuthorAndQuantity():
 	eq_(len(anotherBookCollectionTwo.authors["A"]), 1)
 	eq_(len(anotherBookCollectionTwo.authors.get("B", set())), 0)
 	eq_(len(anotherBookCollectionTwo.authors.get("B", set())), 0)
+
+def test_ShouldSelect2Authors():
+	aBookCollection = book_collection.BookCollection(my_books_all)
+	subCollection = aBookCollection.sample_authors(1)
+	
+	eq_(len(subCollection.authors), 1)
+	eq_(len(subCollection), 3)

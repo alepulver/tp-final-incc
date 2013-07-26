@@ -1,6 +1,9 @@
 import nltk
 from collections import Counter
 
+class FeatureSet:
+	pass
+
 class TextFeatures:
 	def __init__(self, book):
 		self.book = book
@@ -14,6 +17,14 @@ class TextFeatures:
 
 	def features(self):
 		raise NotImplementedError()
+
+class WordCount(TextFeatures):
+	def features(self):
+		return len(list(self.words()))
+
+class UniqueWordCount(TextFeatures):
+	def features(self):
+		return len(set(self.words()))
 
 class WordFrequencies(TextFeatures):
 	def features(self):
