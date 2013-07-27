@@ -7,17 +7,19 @@ my_book_two = bc.Book.from_str("Title: Book Two\nAuthor: B\ntower oil tower oil"
 my_book_three = bc.Book.from_str("Title: Book Three\nAuthor: A\nanimal plant")
 my_book_four = bc.Book.from_str("Title: Book Three\nAuthor: B\ntower oil")
 
-my_shelve = shelve.open("storage.db")
+my_shelve = shelve.open("storage_new.db")
 aBookCollection = my_shelve['aBookCollection']
 
 def test_CanClassifyAPairOfBooks():
 	training_set = bc.BookCollection({my_book_one, my_book_two})
 	testing_set = bc.BookCollection({my_book_three, my_book_four})
-	experiment = bc.Experiment(training_set, testing_set, bc.WordFrequencies)
+	tokenizer = bc.BasicTokenizer()
+	indexer = bc.PossibleFeatureAnalyzer(tokenizer, [b.contents for b in training_set]).build_indexer()
+	experiment = bc.Experiment(training_set, testing_set, bc.WordFrequencyExtractor(tokenizer, indexer))
 	eq_(experiment.results(), {my_book_three: "A", my_book_four: "B"})
 
 def test_CanLoadTestCollection():
-	eq_(len(aBookCollection), 1103)
+	eq_(len(aBookCollection), 597)
 
 def test_CanClassifyManyBooks():
 	subCollection = aBookCollection.only_authors_with_or_more_than(5).sample_authors(10)
@@ -27,5 +29,5 @@ def test_CanClassifyManyBooks():
 	eq_(len(train), 30)
 	eq_(len(test), 20)
 
-	experiment = bc.Experiment(train, test, bc.WordFrequencies)
+	experiment = bc.Experiment(train, test, bc.WordFrequencyExtractor)
 	eq_(experiment.results(), {})

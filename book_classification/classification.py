@@ -22,13 +22,14 @@ class ModelInput:
 		self._books = list(books)
 		self._feature_extractor = feature_extractor
 		# TODO: add lazy init
-		self._features_map = mapToDict(lambda x: self._feature_extractor(x).features(), self._books)
-		self._feature_indexer = ni.NumericIndexer.from_objects(itertools.chain(*(fs.keys() for fs in self._features_map.values())))
+		#self._features_map = mapToDict(lambda x: self._feature_extractor(x).features(), self._books)
+		#self._feature_indexer = ni.NumericIndexer.from_objects(itertools.chain(*(fs.keys() for fs in self._features_map.values())))
 		self._authors_indexer = ni.NumericIndexer.from_objects(b.author for b in self._books)
 
 	def matrix_for(self, books):
 		matrix = sparse.dok_matrix((len(self._books), len(self._feature_indexer)))
-		features_map = mapToDict(lambda x: self._feature_extractor(x).features(), books)
+		features_map = mapToDict(lambda x: self._feature_extractor.extract_from(x.contents), books)
+
 		for i,b in enumerate(books):
 			for k,v in features_map[b].items():
 				try:
