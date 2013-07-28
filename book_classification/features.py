@@ -1,90 +1,57 @@
-import nltk
-from collections import Counter
+from collections import Counter, defaultdict
 from . import numeric_indexer as ni
 import pandas
-
-class Tokenizer:
-	def tokens(self, text):
-		raise NotImplementedError()
-
-class BasicTokenizer(Tokenizer):
-	def extract_from(self, text):
-		def is_word(x):
-			return x.isalpha() and len(x) > 2
-		tokens = nltk.wordpunct_tokenize(text.lower())
-
-		return filter(is_word, tokens)
+import fractions
 
 class Features:
-	def extractor(self):
-		raise NotImplementedError()
-	def indexer(self):
-		raise NotImplementedError()
-	def as_list(self):
-		raise NotImplementedError()
-	def as_iter(self):
-		raise NotImplementedError()
-	def __len__(self):
-		raise NotImplementedError()
-
-class NormalizedFeatures:
-	pass
-
-class TextFeatures(Features):
-	def __init__(self, extractor, indexer, features, token_count):
+	def __init__(self, extractor, data, total):
 		self._extractor = extractor
-		self._indexer = indexer
-		self._features = features
-		self._token_count = token_count
+		self._data = data
+		self._total = total
 	def extractor(self):
 		return self._extractor
 	def as_dict(self):
-		return self._features
+		return self._data
+	def combine(self, other):
+		raise NotImplementedError()
+	def __len__(self):
+		return len(self._data)
+
+class AtomicFeatures(Features):
 	def as_iter(self):
 		for k,v in self.as_dict().items():
-			yield self._indexer.encode(k), v
-	def __len__(self):
-		return len(self._indexer)
+			yield self._extractor._indexer.encode(k), v
 
-class FeatureExtractor:
-	def extract_from(self, document):
-		raise NotImplementedError()
+	def combine(self, other):
+		assert(self._extractor == other._extractor)
+		data = Counter()
+		gcd = fractions.gcd(self._total, other._total)
+		total = self._total * other._total / gcd
 
-class TextFeatureExtractor(FeatureExtractor):
-	def __init__(self, tokenizer, indexer):
-		self._tokenizer = tokenizer
-		self._indexer = indexer
-	def tokens(self, document):
-		return (token for token in self._tokenizer.extract_from(document) if self._indexer.can_encode(token))
-	def indices(self, document):
-		return (self._indexer.encode(token) for token in self._tokenizer.extract_from(document) if self._indexer.can_encode(token))
+		for k,v in self._data.items():
+			data[k] += v * self._total/gcd
+		for k,v in other._data.items():
+			data[k] += v * other._total/gcd
+		
+		return self.__class__(self._extractor, data, total)
 
-class WordFrequencyExtractor(TextFeatureExtractor):
-	def extract_from(self, document):
-		features = Counter()
-		total_tokens = 0
-		for token in self.tokens(document):
-			features[token] += 1
-			total_tokens += 1
-		for token in features.keys():
-			features[token] /= total_tokens
-		return TextFeatures(self, self._indexer, features, total_tokens)
-
-class WordEntropyExtractor(TextFeatureExtractor):
-	def __init__(self, corpus_frequencies):
-		self._corpus_frequencies = corpus_frequencies
-		self._frequency_extractor = self._corpus_frequencies.extractor()
-		super().__init__(self, self._frequency_extractor._tokenizer, self._frequency_extractor._indexer)
-	def extract_from(self, document):
-		pass
+class SeriesFeatures(Features):
+	def combine(self, other):
+		assert(self._extractor == other._extractor)
+		data = defaultdict(list)
+		total = self._total + other._total
+		
+		for k,v in self._data.items():
+			data[k].extend(x)
+		for k,v in other._data.items():
+			data[k].extend(x + self._total for x in v)
+		
+		return self.__class__(self._extractor, data, total)		
 
 class PossibleFeatureAnalyzer:
 	def __init__(self, counts, total):
 		self._counts = counts
 		self._total = total
-
-	def extremes(first=10, last=10):
-		pass
 
 	def prune_quantiles(self, low=.05, high=0.95):
 		assert(low < high and 0 < low < 1 and 0 < high < 1)

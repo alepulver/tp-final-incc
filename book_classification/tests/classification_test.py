@@ -14,7 +14,7 @@ def test_CanClassifyAPairOfBooks():
 	training_set = bc.BookCollection({my_book_one, my_book_two})
 	testing_set = bc.BookCollection({my_book_three, my_book_four})
 	tokenizer = bc.BasicTokenizer()
-	indexer = bc.PossibleFeatureAnalyzer(tokenizer, [b.contents for b in training_set]).build_indexer()
+	indexer = bc.PossibleFeatureAnalyzer.from_documents(tokenizer, [b.contents for b in training_set]).build_indexer()
 	experiment = bc.Experiment(training_set, testing_set, bc.WordFrequencyExtractor(tokenizer, indexer))
 	eq_(experiment.results(), {my_book_three: "A", my_book_four: "B"})
 
@@ -26,7 +26,7 @@ def test_CanClassifyManyBooks():
 	train, test = subCollection.separate_by_at_most_per_author(3)
 
 	tokenizer = bc.BasicTokenizer()
-	indexer = bc.PossibleFeatureAnalyzer(tokenizer, [b.contents for b in train]).build_indexer()
+	indexer = bc.PossibleFeatureAnalyzer.from_documents(tokenizer, [b.contents for b in train]).build_indexer()
 
 	# TODO: add method sample_books_within_authors
 	test, _ = test.separate_by_at_most_per_author(2)
@@ -36,4 +36,5 @@ def test_CanClassifyManyBooks():
 	experiment = bc.Experiment(train, test, bc.WordFrequencyExtractor(tokenizer, indexer))
 	results = experiment.results()
 	accuracy = len([k for (k,v) in results.items() if k.author == v]) / len(results)
+	print(accuracy)
 	ok_(accuracy > 0.5)
