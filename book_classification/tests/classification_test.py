@@ -24,10 +24,16 @@ def test_CanLoadTestCollection():
 def test_CanClassifyManyBooks():
 	subCollection = aBookCollection.only_authors_with_or_more_than(5).sample_authors(10)
 	train, test = subCollection.separate_by_at_most_per_author(3)
+
+	tokenizer = bc.BasicTokenizer()
+	indexer = bc.PossibleFeatureAnalyzer(tokenizer, [b.contents for b in train]).build_indexer()
+
 	# TODO: add method sample_books_within_authors
 	test, _ = test.separate_by_at_most_per_author(2)
 	eq_(len(train), 30)
 	eq_(len(test), 20)
 
-	experiment = bc.Experiment(train, test, bc.WordFrequencyExtractor)
-	eq_(experiment.results(), {})
+	experiment = bc.Experiment(train, test, bc.WordFrequencyExtractor(tokenizer, indexer))
+	results = experiment.results()
+	accuracy = len([k for (k,v) in results.items() if k.author == v]) / len(results)
+	ok_(accuracy > 0.5)

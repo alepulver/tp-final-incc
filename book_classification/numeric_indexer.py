@@ -22,11 +22,14 @@ class NumericIndexer:
         self._objects = list(objs)
         self._indices = dict(zip(self._objects, range(len(self._objects))))
 
+    def __len__(self):
+        return len(self._objects)
+
     def can_encode(self, obj):
         return obj in self._indices
 
     def can_decode(self, index):
-        return index < len(self._objects)
+        return index < len(self)
 
     def encode(self, obj):
         return self._indices[obj]

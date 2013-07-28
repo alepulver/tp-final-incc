@@ -27,22 +27,19 @@ class ModelInput:
 		self._authors_indexer = ni.NumericIndexer.from_objects(b.author for b in self._books)
 
 	def matrix_for(self, books):
-		matrix = sparse.dok_matrix((len(self._books), len(self._feature_indexer)))
 		features_map = mapToDict(lambda x: self._feature_extractor.extract_from(x.contents), books)
 
+		matrix = sparse.dok_matrix((len(books), len(self._feature_extractor._indexer._objects)))
 		for i,b in enumerate(books):
-			for k,v in features_map[b].items():
-				try:
-					matrix[i, self._feature_indexer.encode_one(k)] = v
-				except:
-					pass
+			for j,count in features_map[b].as_iter():
+				matrix[i, j] = count
 		return matrix.tocsc()
 
 	def encoded_authors_for(self, books):
-		return self._authors_indexer.encode_many(b.author for b in books)
+		return [self._authors_indexer.encode(b.author) for b in books]
 
 	def decode_authors(self, authors):
-		return self._authors_indexer.decode_many(authors)
+		return [self._authors_indexer.decode(a) for a in authors]
 
 class Experiment:
 	def __init__(self, training_set, testing_set, Features):

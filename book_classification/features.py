@@ -1,6 +1,7 @@
 import nltk
 from collections import Counter
 from . import numeric_indexer as ni
+import pandas
 
 class Tokenizer:
 	def tokens(self, text):
@@ -21,8 +22,13 @@ class Features:
 		raise NotImplementedError()
 	def as_list(self):
 		raise NotImplementedError()
-	def as_dict(self):
+	def as_iter(self):
 		raise NotImplementedError()
+	def __len__(self):
+		raise NotImplementedError()
+
+class NormalizedFeatures:
+	pass
 
 class TextFeatures(Features):
 	def __init__(self, extractor, indexer, features, token_count):
@@ -34,11 +40,11 @@ class TextFeatures(Features):
 		return self._extractor
 	def as_dict(self):
 		return self._features
-	def as_list(self):
-		# FIXME: return sparse or dense list, depending on the case!
-		result = [(self._indexer.encode(a),b) for (a,b) in self._features.items()]
-		result.sort(key = lambda x: x[0])
-		return [b for (a,b) in result]
+	def as_iter(self):
+		for k,v in self.as_dict().items():
+			yield self._indexer.encode(k), v
+	def __len__(self):
+		return len(self._indexer)
 
 class FeatureExtractor:
 	def extract_from(self, document):
@@ -73,60 +79,70 @@ class WordEntropyExtractor(TextFeatureExtractor):
 		pass
 
 class PossibleFeatureAnalyzer:
-	# allow passing all documents, reading some statistics and building features with the previous
-	# objects; avoiding to recalculate the numbers; only work with tokens, not numbers
-	def __init__(self, tokenizer, documents):
-		self._tokenizer = tokenizer
-		self._documents = list(documents)
-		self._features = Counter()
-		self._total_tokens = 0
+	def __init__(self, counts, total):
+		self._counts = counts
+		self._total = total
 
-		for doc in documents:
-			self.count_from(doc)
+	def extremes(first=10, last=10):
+		pass
 
-	def count_from(self, doc):
-		for token in self._tokenizer.extract_from(doc):
-			self._features[token] += 1
-			self._total_tokens += 1
+	def prune_quantiles(self, low=.05, high=0.95):
+		assert(low < high and 0 < low < 1 and 0 < high < 1)
+		series = pandas.Series(list(self._counts.values()))
+		series.sort()
+		vmin = series.quantile(low)
+		vmax = series.quantile(high)
 
-	def all_features(self):
-		return _features.keys()
+		# XXX: add dict filterValues function for this
+		counts = Counter()
+		total = 0
+		for k,v in self._counts.items():
+			if vmin < v < vmax:
+				counts[k] = v
+				total += v
+		return self.__class__(counts, total)
+
+	# FIXME: this doesn't work because it partially filters data; we must use a reverse index with subtotals
+	def prune_quantiles2(self, low=.05, high=0.95):
+		assert(low < high and 0 < low < 1 and 0 < high < 1)
+		pairs = [(v,k) for (k,v) in self._counts.items()]
+		pairs.sort()
+		vmin = self._total * low
+		vmax = self._total * high
+
+		counts = Counter()
+		total = 0
+		current = 0
+		for v,k in pairs:
+			if current >= vmax:
+				break
+			if vmin < current:
+				counts[k] = v
+				total += v
+			current += v
+		return self.__class__(counts, total)
+
+	def as_dataframe(self):
+		words = list(self._counts.keys())
+		counts = list(self._counts.values())
+		frequencies = list(v/self._total for v in self._counts.values())
+		return pandas.DataFrame({'Word': words, 'Count': counts, 'Frequency': frequencies})
 
 	def build_indexer(self):
-		return ni.NumericIndexer(self._features.keys())
+		return ni.NumericIndexer(self._counts.keys())
 
-"""
-class TextFeatures:
-	def __init__(self, book):
-		self.book = book
-
-	def words(self):
-		def is_word(x):
-			return x.isalpha() and len(x) > 2
-		tokens = nltk.wordpunct_tokenize(self.book.contents.lower())
-
-		return filter(is_word, tokens)
-
-	def features(self):
-		raise NotImplementedError()
-
-class WordCount(TextFeatures):
-	def features(self):
-		return len(list(self.words()))
-
-class UniqueWordCount(TextFeatures):
-	def features(self):
-		return len(set(self.words()))
-
-class WordFrequencies(TextFeatures):
-	def features(self):
+	@classmethod
+	def from_documents(cls, tokenizer, documents):
 		counts = Counter()
-		for w in self.words():
-			counts[w] += 1
-		return counts
+		total = 0
 
-class WordEntropies(TextFeatures):
-	def features(self):
-		# TODO: implement when windows and aggregation are ready
-		pass
-"""
+		for doc in documents:
+			for token in tokenizer.extract_from(doc):
+				counts[token] += 1
+				total += 1
+		return cls(counts, total)
+
+	@classmethod
+	def from_counts(cls, counts):
+		total = sum(counts.values())
+		cls(counts, total)

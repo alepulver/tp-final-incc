@@ -14,16 +14,8 @@ def test_TokenizerShouldProcessASentence():
 
 def test_CanExtractFrequenciesFromText():
 	text = "one two one three three four four three three"
-	indexer = bc.NumericIndexer(["two", "three", "one"])
+	indexer = bc.NumericIndexer(["two", "three", "blah","one"])
 	extractor = bc.WordFrequencyExtractor(bc.BasicTokenizer(), indexer)
 	result = extractor.extract_from(text)
 	eq_(result.as_dict(), {'three': 0.5714285714285714, 'one': 0.2857142857142857, 'two': 0.14285714285714285})
-	eq_(result.as_list(), [0.14285714285714285, 0.5714285714285714, 0.2857142857142857])
-
-def test_ShouldOutputListRepresentation():
-	text = "one two one three three four four three three"
-	indexer = bc.NumericIndexer(["two", "three", "blah", "one"])
-	extractor = bc.WordFrequencyExtractor(bc.BasicTokenizer(), indexer)
-	result = extractor.extract_from(text)
-	eq_(result.as_dict(), {'three': 0.5714285714285714, 'one': 0.2857142857142857, 'two': 0.14285714285714285})
-	eq_(result.as_list(), [0.14285714285714285, 0.5714285714285714, 0, 0.2857142857142857])	
+	eq_(len(result), 4)
