@@ -4,3 +4,4 @@ from .features import *
 from .classification import *
 from .numeric_indexer import *
 from .feature_extractors import *
+from .workflow import *
