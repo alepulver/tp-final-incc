@@ -1,6 +1,36 @@
 from collections import Counter, defaultdict
-from . import numeric_indexer as ni
+import book_classification as bc
 import pandas
+
+class ExtractionEnvironment:
+	def __init__(self, indexer, tokenizer, grouper, window):
+		self._indexer = indexer
+		self._tokenizer = tokenizer
+		self._grouper = grouper
+		self._window = window
+	def tokens_from(text):
+		return (t for t in self._tokenizer.tokens_from(text) if self._indexer.can_encode(t))
+
+	def frequencies(self, text):
+		return bc.TokenFrequencies.from_tokens(self.tokens_from(text))
+	def series(self, text):
+		return bc.TokenSeries.from_tokens(self.tokens_from(text))
+	def entropies(self, text):
+		return bc.TokenEntropies.from_parts(self._grouper.parts_from(self.tokens_from(text)))
+	def pairwise_associations(self, text):
+		return bc.TokenPairwiseAssociations.from_tokens(self.tokens_from(text), self._window)
+
+	@classmethod
+	def default(cls):
+		indexer = bc.NumericIndexer()
+		tokenizer = bc.BasicTokenizer()
+		splitter = bc.BasicSplitter()
+		weighter = bc.WeightingWindow()
+		return cls(indexer, tokenizer, splitter, weighter)
+
+class FeatureAggregator:
+	# XXX: list of features to matrix, maybe with different indexes and type of feature
+	pass
 
 class PossibleFeatureAnalyzer:
 	def __init__(self, counts, total):
@@ -50,7 +80,7 @@ class PossibleFeatureAnalyzer:
 		return pandas.DataFrame({'Word': words, 'Count': counts, 'Frequency': frequencies})
 
 	def build_indexer(self):
-		return ni.NumericIndexer(self._counts.keys())
+		return bc.NumericIndexer(self._counts.keys())
 
 	@classmethod
 	def from_documents(cls, tokenizer, documents):
@@ -58,7 +88,7 @@ class PossibleFeatureAnalyzer:
 		total = 0
 
 		for doc in documents:
-			for token in tokenizer.extract_from(doc):
+			for token in tokenizer.tokens_from(doc):
 				counts[token] += 1
 				total += 1
 		return cls(counts, total)

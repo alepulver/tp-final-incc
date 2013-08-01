@@ -1,5 +1,5 @@
 from sklearn import svm
-from book_classification import numeric_indexer as ni
+import book_classification as bc
 import itertools
 from scipy import sparse
 
@@ -24,7 +24,7 @@ class ModelInput:
 		# TODO: add lazy init
 		#self._features_map = mapToDict(lambda x: self._feature_extractor(x).features(), self._books)
 		#self._feature_indexer = ni.NumericIndexer.from_objects(itertools.chain(*(fs.keys() for fs in self._features_map.values())))
-		self._authors_indexer = ni.NumericIndexer.from_objects(b.author for b in self._books)
+		self._authors_indexer = bc.NumericIndexer.from_objects(b.author for b in self._books)
 
 	def matrix_for(self, books):
 		features_map = mapToDict(lambda x: self._feature_extractor.extract_from(x.contents), books)
