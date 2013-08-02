@@ -8,9 +8,9 @@ def equals_mybook(aBook):
 	aBookPath = os.path.join(path_to_books, "pg1465.txt")
 	contents = open(aBookPath, "rU").read()
 
-	eq_(aBook.author, "Charles Dickens")
-	eq_(aBook.title, "The Wreck of the Golden Mary")
-	eq_(aBook.contents, contents)
+	eq_(aBook.author(), "Charles Dickens")
+	eq_(aBook.title(), "The Wreck of the Golden Mary")
+	eq_(aBook.contents(), contents)
 
 def test_ShouldCreateABookFromFilePath():
 	aBookPath = os.path.join(path_to_books, "pg1465.txt")
@@ -35,4 +35,4 @@ def test_ShouldCreateABookFromZip():
 def test_BookFromFileShouldHavePath():
 	aBookPath = os.path.join(path_to_books, "pg1465.txt")
 	aBook = book.Book.from_file_path(aBookPath)
-	eq_(aBook.path, aBookPath)
+	eq_(aBook.source(), aBookPath)

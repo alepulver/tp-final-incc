@@ -2,20 +2,37 @@ import re
 import zipfile
 import gzip
 
-
-class TextExtractor:
-    # add from_file_path cases under hierarchy here
-    pass
-
-
 class Book:
-    """
-	...
-	"""
+    def __init__(self, author, title, contents, source=None):
+        self._author = author
+        self._title = title
+        self._contents = contents
+        self._source = source
+
+    def author(self):
+        return self._author
+    def title(self):
+        return self._title
+    def contents(self):
+        return self._contents
+    def source(self):
+        return self._source
+
+    @staticmethod
+    def from_str(string, source=None):
+        text = string
+
+        try:
+            author = re.search('Author:\s+(.+)', string).group(1).rstrip()
+            title = re.search('Title:\s+(.+)', text).group(1).rstrip()
+            return Book(author, title, text, source)
+
+        except AttributeError:
+            raise Exception("missing book information")
 
     @staticmethod
     def from_file_path(file_name):
-    	# TODO: partial/lazy read, much faster
+        # TODO: partial/lazy read, much faster
         if file_name.endswith(".zip"):
             with zipfile.ZipFile(file_name) as zf:
                 assert len(zf.namelist()) == 1
@@ -30,21 +47,3 @@ class Book:
                 return Book.from_str(f.read(), file_name)
         else:
             raise Exception("unknown file extension for %s" % file_name)
-
-    @staticmethod
-    def from_str(string, path=None):
-        text = string
-
-        try:
-            author = re.search('Author:\s+(.+)', string).group(1).rstrip()
-            title = re.search('Title:\s+(.+)', text).group(1).rstrip()
-            return Book(author, title, text, path)
-
-        except AttributeError:
-            raise Exception("missing book information")
-
-    def __init__(self, author, title, contents, path=None):
-        self.author = author
-        self.title = title
-        self.contents = contents
-        self.path = path

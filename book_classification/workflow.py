@@ -33,44 +33,35 @@ class FeatureAggregator:
 	pass
 
 class PossibleFeatureAnalyzer:
+	# allow pruning quantiles
+
+	# also calculate entropies, everything for each book and total
+
 	def __init__(self, counts, total):
 		self._counts = counts
 		self._total = total
 
-	def prune_quantiles(self, low=.05, high=0.95):
-		assert(low < high and 0 < low < 1 and 0 < high < 1)
-		series = pandas.Series(list(self._counts.values()))
-		series.sort()
-		vmin = series.quantile(low)
-		vmax = series.quantile(high)
-
-		# XXX: add dict filterValues function for this
+	def prune_less_occurrences_than(self, occurrences):
 		counts = Counter()
 		total = 0
 		for k,v in self._counts.items():
-			if vmin < v < vmax:
+			if v >= occurrences:
 				counts[k] = v
 				total += v
 		return self.__class__(counts, total)
 
-	# FIXME: this doesn't work because it partially filters data; we must use a reverse index with subtotals
-	def prune_quantiles2(self, low=.05, high=0.95):
-		assert(low < high and 0 < low < 1 and 0 < high < 1)
+	def prune_last_words(self, n):
 		pairs = [(v,k) for (k,v) in self._counts.items()]
-		pairs.sort()
-		vmin = self._total * low
-		vmax = self._total * high
+		pairs.sort(reverse=True)
 
 		counts = Counter()
 		total = 0
 		current = 0
 		for v,k in pairs:
-			if current >= vmax:
-				break
-			if vmin < current:
+			if current >= n:
 				counts[k] = v
 				total += v
-			current += v
+			current += 1
 		return self.__class__(counts, total)
 
 	def as_dataframe(self):
