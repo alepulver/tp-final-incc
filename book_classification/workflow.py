@@ -1,45 +1,51 @@
 from collections import Counter, defaultdict
 import book_classification as bc
 import pandas
+from functools import reduce
 
 class ExtractionEnvironment:
-	def __init__(self, indexer, tokenizer, grouper, window):
-		self._indexer = indexer
+	def __init__(self, tokenizer, grouper, window):
 		self._tokenizer = tokenizer
 		self._grouper = grouper
 		self._window = window
-	def tokens_from(text):
-		return (t for t in self._tokenizer.tokens_from(text) if self._indexer.can_encode(t))
+
+	def tokens_from(self, text):
+		return self._tokenizer.tokens_from(text)
+	def tokenized_groups_from(self, text):
+		return self._grouper.parts_from(self.tokens_from(text))
 
 	def frequencies(self, text):
 		return bc.TokenFrequencies.from_tokens(self.tokens_from(text))
 	def series(self, text):
 		return bc.TokenSeries.from_tokens(self.tokens_from(text))
 	def entropies(self, text):
-		return bc.TokenEntropies.from_parts(self._grouper.parts_from(self.tokens_from(text)))
+		return bc.TokenEntropies.from_parts(self.tokenized_groups_from(text))
 	def pairwise_associations(self, text):
 		return bc.TokenPairwiseAssociations.from_tokens(self.tokens_from(text), self._window)
 
+	def restrict_vocabulary(self, words):
+		# return new ExtractionEnvironment replacing tokenizer with tokenizer.restrict_vocabulary
+		raise NotImplementedError()
+
 	@classmethod
 	def default(cls):
-		indexer = bc.NumericIndexer()
 		tokenizer = bc.BasicTokenizer()
-		splitter = bc.BasicSplitter()
-		weighter = bc.WeightingWindow()
-		return cls(indexer, tokenizer, splitter, weighter)
-
-class FeatureAggregator:
-	# XXX: list of features to matrix, maybe with different indexes and type of feature
-	pass
+		grouper = bc.BasicGrouper(500)
+		weighter = bc.WeightingWindow.uniform(501)
+		return cls(tokenizer, grouper, weighter)
 
 class PossibleFeatureAnalyzer:
-	# allow pruning quantiles
+	# TODO: allow pruning quantiles
 
-	# also calculate entropies, everything for each book and total
+	def __init__(self, collection, extraction_env, frequencies, entropies):
+		self._collection = collection
+		self._extraction_env = extraction_env
+		self._frequencies = frequencies
+		self._entropies = entropies
 
-	def __init__(self, counts, total):
-		self._counts = counts
-		self._total = total
+	# change filters to only remove words
+	# if necessary, add a "restrict" method to Features to recalculate with only certain words
+	# and make returning entropies lazy, because they can't be patched like frequencies
 
 	def prune_less_occurrences_than(self, occurrences):
 		counts = Counter()
@@ -70,21 +76,28 @@ class PossibleFeatureAnalyzer:
 		frequencies = list(v/self._total for v in self._counts.values())
 		return pandas.DataFrame({'Word': words, 'Count': counts, 'Frequency': frequencies})
 
-	def build_indexer(self):
-		return bc.NumericIndexer(self._counts.keys())
+	# graph frequencies/entropies per author vs total, each column as a series
+
+	def environment(self):
+		pass
 
 	@classmethod
-	def from_documents(cls, tokenizer, documents):
-		counts = Counter()
-		total = 0
+	def from_book_collection(cls, collection, extraction_env=None):
+		if extraction_env is None:
+			extraction_env = ExtractionEnvironment.default()
 
-		for doc in documents:
-			for token in tokenizer.tokens_from(doc):
-				counts[token] += 1
-				total += 1
-		return cls(counts, total)
+		frequencies = bc.CollectionFeatures.from_book_collection(
+			collection, lambda x: extraction_env.frequencies(x))
+		entropies = bc.CollectionFeatures.from_book_collection(
+			collection, lambda x: extraction_env.entropies(x))
 
-	@classmethod
-	def from_counts(cls, counts):
-		total = sum(counts.values())
-		cls(counts, total)
+		return cls(collection, extraction_env, frequencies, entropies)
+
+class PossibleMatrixAnalyzer:
+	pass
+
+class FeatureAggregator:
+	# XXX: list of features to matrix, maybe with different indexes and type of feature
+
+	# mutable, but returns immutable matrices
+	pass

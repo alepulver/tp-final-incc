@@ -8,6 +8,20 @@ class BasicTokenizer:
 
 		return filter(is_word, tokens)
 
+	def restrict_vocabulary(self, words):
+		return FilteringTokenizer(self, words)
+
+class FilteringTokenizer:
+	def __init__(self, tokenizer, vocabulary):
+		self._tokenizer = tokenizer
+		self._vocabulary = vocabulary
+
+	def tokens_from(self, text):
+		return filter(lambda x: x in self._vocabulary, self._tokenizer.tokens_from(text))
+
+	def restrict_vocabulary(self, words):
+		return self.__class__(self._tokenizer, self._vocabulary - words)
+
 class BasicGrouper:
 	def __init__(self, parts_size):
 		self._parts_size = parts_size
@@ -22,9 +36,11 @@ class BasicGrouper:
 			yield group
 
 class WeightingWindow:
+	# TODO: define symmetric ones by growth function, from 1 to n/2 and reverse after half; normalize at the end
+
 	def __init__(self, weights):
 		assert(len(weights) > 0 and len(weights) % 2 == 1)
-		assert(sum(weights) == 1)
+		assert(abs(1 - sum(weights)) < 10**-5)
 		self._weights = weights
 	def __getitem__(self, key):
 		return self._weights[key]

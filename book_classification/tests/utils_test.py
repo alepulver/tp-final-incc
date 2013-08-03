@@ -1,11 +1,20 @@
 import book_classification as bc
 from nose.tools import *
 
-def test_TokenizerShouldProcessASentence():
+def test_BasicTokenizerShouldProcessASentence():
 	tokenizer = bc.BasicTokenizer()
 	text = "This, I think; is a n1c3.sentence..."
 	result = list(tokenizer.tokens_from(text))
 	eq_(result, ["this", "think", "sentence"])
+
+def test_FilteringTokenizerShouldRestrictWords():
+	tokenizer = bc.FilteringTokenizer(bc.BasicTokenizer(), ['two', 'three'])
+	text = "one two one two three one two four"
+	result = list(tokenizer.tokens_from(text))
+	eq_(result, ["two", "two", "three", "two"])
+
+def test_TokenizersCanRestrictVocabulary():
+	raise NotImplementedError()
 
 def test_GrouperCanGroupMultiplesOfSize():
 	grouper = bc.BasicGrouper(3)

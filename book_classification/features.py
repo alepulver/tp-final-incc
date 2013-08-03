@@ -1,7 +1,6 @@
 from collections import Counter, defaultdict
-import fractions
 import math
-import functools
+from functools import reduce
 
 class Features:
 	@classmethod
@@ -184,3 +183,29 @@ class TokenPairwiseAssociation(Features):
 				total += 1
 
 		return cls(entries, total, weights, elements_before, elements_after)
+
+class CollectionFeatures:
+	def __init__(self, by_book, by_author, total):
+		self._by_book = by_book
+		self._by_author = by_author
+		self._total = total
+
+	def by_book(self, book):
+		return self._by_book[book]
+	def by_author(self, author):
+		return self._by_authors[author]
+	def total(self):
+		return self._total
+
+	@classmethod
+	def from_book_collection(cls, collection, func):
+		features_by_book = {}
+		for book in collection.books():
+			features_by_book[book] = func(book.contents())
+		features_by_author = {}
+		for author in collection.authors():
+			features = (features_by_book[book] for book in collection.books_by(author))
+			features_by_author[author] = reduce(lambda x,y: x.combine(y), features)
+		features_total = reduce(lambda x,y: x.combine(y), features_by_author.values())
+
+		return cls(features_by_book, features_by_author, features_total)

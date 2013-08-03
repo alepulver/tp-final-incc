@@ -1,66 +1,70 @@
-import random
+from collections import Counter, defaultdict
+import book_classification as bc
 
 class BookCollection:
-	def __init__(self, books):
-		self.books = set(books)
-
-		self.authors = {}
-		for b in self.books:
-			if b.author() not in self.authors:
-				self.authors[b.author()] = set()
-			self.authors[b.author()].add(b)
+	def __init__(self, books, books_by_author):
+		self._books = books
+		self._books_by_author = books_by_author
 
 	def __len__(self):
-		return len(self.books)
-	def __iter__(self):
-		return iter(self.books)
+		return len(self._books)
 
-	def filter(self, condition):
-		return BookCollection(filter(condition, self.books))
+	def books(self):
+		return self._books
+	def books_by(self, author):
+		return self._books_by_author[author]
+	def authors(self):
+		return self._books_by_author.keys()
 
-	def partition(self, condition):
+	def filter_authors(self, condition):
+		result = set()
+		for author,books in self._books_by_author.items():
+			if condition(author):
+				result.update(books)
+		return self.__class__.from_books(result)
+
+	def filter_books(self, condition):
+		return self.__class__.from_books(filter(condition, self.books()))
+
+	def partition_books(self, condition):
 		books_one = set()
 		books_two = set()
 
-		for b in self.books:
+		for b in self.books():
 			if condition(b):
 				books_one.add(b)
 			else:
 				books_two.add(b)
 
-		return BookCollection(books_one), BookCollection(books_two)
+		c1 = self.__class__.from_books(books_one)
+		c2 = self.__class__.from_books(books_two)
+		return c1, c2
 
-	def sample_authors(self, n):
-		# FIXME: make deterministic while allowing to change seed
-		random.seed(123)
-		authors = set(random.sample(sorted(self.authors.keys()), n))
-		def condition(book):
-			return book.author() in authors
-		return self.filter(condition)
+	@classmethod
+	def from_books(cls, books):
+		_books = set(books)
+		_books_by_author = defaultdict(set)
+		for b in _books:
+			_books_by_author[b.author()].add(b)
+		return cls(_books, _books_by_author)
 
-	def only_authors_with_or_more_than(self, n):
-		def condition(book):
-			return len(self.authors[book.author()]) >= n
-		return self.filter(condition)
+	@classmethod
+	def from_file_path_list(cls, path_list):
+		books = [bc.Book.from_file_path(path) for path in path_list]
+		return cls.from_books(books)
 
-	def separate_by_at_most_per_author(self, n):
-		selected = {}
+	# TODO: move these 2 methods somewhere else
+	def exclude_authors_with_less_than(self, n):
+		def condition(author):
+			return len(self.books_by(author)) >= n
+		return self.filter_authors(condition)
+
+	def split_at_number_per_author(self, n):
+		selected = Counter()
 		def condition(book):
-			if book.author() not in selected:
-				selected[book.author()] = 0
 			if selected[book.author()] < n:
 				selected[book.author()] += 1
 				return True
 			else:
 				return False
-
-		return self.partition(condition)
-
-	@classmethod
-	def from_books(self, books):
-		pass
-
-	@classmethod
-	def from_file_path_list(self, path_list):
-		for path in path_list:
-			pass
+		return self.partition_books(condition)
