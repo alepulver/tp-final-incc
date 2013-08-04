@@ -18,6 +18,8 @@ class BasicTokenizer:
 
 		return filter(is_word, tokens)
 
+	def vocabulary(self):
+		raise TypeError("BasicTokenizer doesn't have a vocabulary, please use 'restrict_vocabulary'")
 	def restrict_vocabulary(self, words):
 		return FilteringTokenizer(self, words)
 
@@ -32,6 +34,8 @@ class FilteringTokenizer:
 	def tokens_from(self, text):
 		return filter(lambda x: x in self._vocabulary, self._tokenizer.tokens_from(text))
 
+	def vocabulary(self):
+		return self._vocabulary
 	def restrict_vocabulary(self, words):
 		return self.__class__(self._tokenizer, self._vocabulary - words)
 

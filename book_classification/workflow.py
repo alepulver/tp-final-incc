@@ -23,6 +23,8 @@ class ExtractionEnvironment:
 	def pairwise_associations(self, text):
 		return bc.TokenPairwiseAssociations.from_tokens(self.tokens_from(text), self._window)
 
+	def vocabulary(self):
+		return self._tokenizer.vocabulary()
 	def restrict_vocabulary(self, words):
 		return self.__class__(self._tokenizer.restrict_vocabulary(words), self._grouper, self._window)
 
@@ -41,7 +43,6 @@ class PossibleFeatureAnalyzer:
 		self._entropies = entropies
 
 	# TODO
-	# if necessary, add a "restrict" method to Features to recalculate with only certain words
 	# and make returning entropies lazy, because they can't be patched like frequencies
 
 	def prune_quantiles(self, pairs, low, high):
@@ -74,8 +75,10 @@ class PossibleFeatureAnalyzer:
 		return self._frequencies
 	def entropies(self):
 		return self._entropies
-	def environment(self):
+	def extraction_env(self):
 		return self._extraction_env
+	def collection(self):
+		return self._collection
 
 	@classmethod
 	def from_book_collection(cls, collection, extraction_env=None):
@@ -89,14 +92,10 @@ class PossibleFeatureAnalyzer:
 
 		return cls(collection, extraction_env, frequencies, entropies)
 
-class FeatureAggregator:
-	def __init__(self):
-		pass
-	# XXX: list of features to matrix, maybe with different indexes and type of feature
-
-	# mutable, but returns immutable matrices
-	def add(self, features):
-		raise NotImplementedError()
-
-	def build_matrix(self):
-		raise NotImplementedError()
+class FeaturesExtractor:
+	def __init__(self, extraction_env):
+		self._extraction_env = extraction_env
+	def extract_from(self, book):
+		return self._extraction_env.entropies(book)
+	def vocabulary(self):
+		return _extraction_env.vocabulary()
