@@ -96,6 +96,6 @@ class FeaturesExtractor:
 	def __init__(self, extraction_env):
 		self._extraction_env = extraction_env
 	def extract_from(self, book):
-		return self._extraction_env.entropies(book)
+		return self._extraction_env.entropies(book.contents())
 	def vocabulary(self):
-		return _extraction_env.vocabulary()
+		return self._extraction_env.vocabulary()
