@@ -26,6 +26,7 @@ def test_GrouperCanGroupNonMultiplesOfSize():
 	result = grouper.parts_from('abcdefgh')
 	eq_(list(result), [['a', 'b', 'c'], ['d', 'e', 'f'], ['g', 'h']])
 
+# TODO: add intelligible message to exception
 @raises(Exception)
 def test_WeightingWindowCantHaveEvenSize():
 	result = bc.WeightingWindow.uniform(4)

@@ -24,8 +24,7 @@ class ExtractionEnvironment:
 		return bc.TokenPairwiseAssociations.from_tokens(self.tokens_from(text), self._window)
 
 	def restrict_vocabulary(self, words):
-		# return new ExtractionEnvironment replacing tokenizer with tokenizer.restrict_vocabulary
-		raise NotImplementedError()
+		return self.__class__(self._tokenizer.restrict_vocabulary(words), self._grouper, self._window)
 
 	@classmethod
 	def default(cls):
@@ -35,69 +34,69 @@ class ExtractionEnvironment:
 		return cls(tokenizer, grouper, weighter)
 
 class PossibleFeatureAnalyzer:
-	# TODO: allow pruning quantiles
-
 	def __init__(self, collection, extraction_env, frequencies, entropies):
 		self._collection = collection
 		self._extraction_env = extraction_env
 		self._frequencies = frequencies
 		self._entropies = entropies
 
-	# change filters to only remove words
+	# TODO
 	# if necessary, add a "restrict" method to Features to recalculate with only certain words
 	# and make returning entropies lazy, because they can't be patched like frequencies
 
-	def prune_less_occurrences_than(self, occurrences):
-		counts = Counter()
-		total = 0
-		for k,v in self._counts.items():
-			if v >= occurrences:
-				counts[k] = v
-				total += v
-		return self.__class__(counts, total)
+	def prune_quantiles(self, pairs, low, high):
+		assert(low < high)
+		assert(0 <= low <= 1)
+		assert(0 <= high <= 1)
 
-	def prune_last_words(self, n):
-		pairs = [(v,k) for (k,v) in self._counts.items()]
-		pairs.sort(reverse=True)
-
-		counts = Counter()
-		total = 0
+		pairs.sort()
 		current = 0
+		words = set()
+
 		for v,k in pairs:
-			if current >= n:
-				counts[k] = v
-				total += v
-			current += 1
-		return self.__class__(counts, total)
+			if current > high:
+				break
+			if low <= current:
+				words.add(k)
+			current += v
 
-	def as_dataframe(self):
-		words = list(self._counts.keys())
-		counts = list(self._counts.values())
-		frequencies = list(v/self._total for v in self._counts.values())
-		return pandas.DataFrame({'Word': words, 'Count': counts, 'Frequency': frequencies})
+		extraction_env = self._extraction_env.restrict_vocabulary(words)
+		return self.__class__.from_book_collection(self._collection, extraction_env)
 
-	# graph frequencies/entropies per author vs total, each column as a series
+	def prune_entropies_quantiles(self, low, high):
+		pairs = [(v,k) for (k,v) in self._entropies.total().items()]
+		return self.prune_quantiles(pairs, low, high)
+	def prune_frequencies_quantiles(self, low, high):
+		pairs = [(v,k) for (k,v) in self._frequencies.total().items()]
+		return self.prune_quantiles(pairs, low, high)
 
+	def frequencies(self):
+		return self._frequencies
+	def entropies(self):
+		return self._entropies
 	def environment(self):
-		pass
+		return self._extraction_env
 
 	@classmethod
 	def from_book_collection(cls, collection, extraction_env=None):
 		if extraction_env is None:
 			extraction_env = ExtractionEnvironment.default()
 
-		frequencies = bc.CollectionFeatures.from_book_collection(
+		frequencies = bc.HierarchialFeatures.from_book_collection(
 			collection, lambda x: extraction_env.frequencies(x))
-		entropies = bc.CollectionFeatures.from_book_collection(
+		entropies = bc.HierarchialFeatures.from_book_collection(
 			collection, lambda x: extraction_env.entropies(x))
 
 		return cls(collection, extraction_env, frequencies, entropies)
 
-class PossibleMatrixAnalyzer:
-	pass
-
 class FeatureAggregator:
+	def __init__(self):
+		pass
 	# XXX: list of features to matrix, maybe with different indexes and type of feature
 
 	# mutable, but returns immutable matrices
-	pass
+	def add(self, features):
+		raise NotImplementedError()
+
+	def build_matrix(self):
+		raise NotImplementedError()

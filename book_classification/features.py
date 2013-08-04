@@ -1,6 +1,5 @@
 from collections import Counter, defaultdict
 import math
-from functools import reduce
 
 class Features:
 	@classmethod
@@ -17,8 +16,12 @@ class Features:
 		raise NotImplementedError()
 	def total_counts(self):
 		raise NotImplementedError()
-	def items(self):
+	def keys(self):
 		raise NotImplementedError()
+	def values(self):
+		return (self[key] for key in self.keys())
+	def items(self):
+		return ((key, self[key]) for key in self.keys())
 
 class TokenFrequencies(Features):
 	def __init__(self, entries, total):
@@ -42,8 +45,8 @@ class TokenFrequencies(Features):
 		return self._entries[key]
 	def total_counts(self):
 		return self._total
-	def items(self):
-		return self._entries.items()
+	def keys(self):
+		return self._entries.keys()
 
 	@classmethod
 	def from_tokens(cls, sequence):
@@ -78,8 +81,8 @@ class TokenSeries(Features):
 		return self._entries[key]
 	def total_counts(self):
 		return self._total
-	def items(self):
-		return self._entries.items()
+	def keys(self):
+		return self._entries.keys()
 
 	@classmethod
 	def from_tokens(cls, sequence):
@@ -118,9 +121,8 @@ class TokenEntropies(Features):
 		return coeff * (self._sum_freqs_log[key] - self._sum_freqs[key]*math.log(self._sum_freqs[key]))
 	def total_counts(self):
 		return self._total
-	def items(self):
-		for k in self._sum_freqs.keys():
-			yield k, self[k]
+	def keys(self):
+		return self._sum_freqs.keys()
 
 	@classmethod
 	def from_parts(cls, parts):
@@ -141,7 +143,6 @@ class TokenEntropies(Features):
 
 		return cls(sum_freqs, sum_freqs_log, total)
 
-
 class TokenPairwiseAssociation(Features):
 	def __init__(self, entries, total, weights, elements_before, elements_after):
 		self._entries = entries
@@ -157,8 +158,8 @@ class TokenPairwiseAssociation(Features):
 		return self._entries[key]
 	def total_counts(self):
 		return self._total
-	def items(self):
-		return self._entries.items()
+	def keys(self):
+		return self._entries.keys()
 
 	@classmethod
 	def from_tokens(cls, tokens, weights):
@@ -183,29 +184,3 @@ class TokenPairwiseAssociation(Features):
 				total += 1
 
 		return cls(entries, total, weights, elements_before, elements_after)
-
-class CollectionFeatures:
-	def __init__(self, by_book, by_author, total):
-		self._by_book = by_book
-		self._by_author = by_author
-		self._total = total
-
-	def by_book(self, book):
-		return self._by_book[book]
-	def by_author(self, author):
-		return self._by_authors[author]
-	def total(self):
-		return self._total
-
-	@classmethod
-	def from_book_collection(cls, collection, func):
-		features_by_book = {}
-		for book in collection.books():
-			features_by_book[book] = func(book.contents())
-		features_by_author = {}
-		for author in collection.authors():
-			features = (features_by_book[book] for book in collection.books_by(author))
-			features_by_author[author] = reduce(lambda x,y: x.combine(y), features)
-		features_total = reduce(lambda x,y: x.combine(y), features_by_author.values())
-
-		return cls(features_by_book, features_by_author, features_total)

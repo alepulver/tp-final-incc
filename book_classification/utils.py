@@ -1,4 +1,14 @@
 import nltk
+from functools import reduce
+import pandas
+
+def unzip(sequence):
+	out1 = []
+	out2 = []
+	for v1,v2 in sequence:
+		out1.append(v1)
+		out2.append(v2)
+	return out1, out2
 
 class BasicTokenizer:
 	def tokens_from(self, text):
@@ -10,6 +20,9 @@ class BasicTokenizer:
 
 	def restrict_vocabulary(self, words):
 		return FilteringTokenizer(self, words)
+
+class StemmingTokenizer:
+	pass
 
 class FilteringTokenizer:
 	def __init__(self, tokenizer, vocabulary):
@@ -90,3 +103,50 @@ class NumericIndexer:
     @classmethod
     def from_objects(cls, objs):
         return cls(set(objs))
+
+class HierarchialFeatures:
+	def __init__(self, by_book, by_author, total):
+		self._by_book = by_book
+		self._by_author = by_author
+		self._total = total
+
+	def by_book(self, book):
+		return self._by_book[book]
+	def by_author(self, author):
+		return self._by_authors[author]
+	def total(self):
+		return self._total
+
+	@classmethod
+	def from_book_collection(cls, collection, func):
+		features_by_book = {}
+		for book in collection.books():
+			features_by_book[book] = func(book.contents())
+		features_by_author = {}
+		for author in collection.authors():
+			features = (features_by_book[book] for book in collection.books_by(author))
+			features_by_author[author] = reduce(lambda x,y: x.combine(y), features)
+		features_total = reduce(lambda x,y: x.combine(y), features_by_author.values())
+
+		return cls(features_by_book, features_by_author, features_total)
+
+	# TODO: move these methods somewhere else
+	def dataframe_books(self):
+		frames = []
+		for book,features in self._by_book.items():
+			df = pandas.DataFrame(list(features.values()),
+				index = list(features.keys()), columns=[book.title()])
+			frames.append(df)
+		return pandas.concat(frames)
+	
+	def dataframe_authors(self):
+		frames = []
+		for author,features in self._by_author.items():
+			df = pandas.DataFrame(list(features.values()),
+				index = list(features.keys()), columns=[author])
+			frames.append(df)
+		return pandas.concat(frames)
+	
+	def dataframe_total(self):
+		return pandas.DataFrame(list(self.total().values()),
+				index = list(self.total().keys()), columns=['Value'])

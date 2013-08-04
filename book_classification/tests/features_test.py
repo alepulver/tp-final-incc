@@ -87,6 +87,3 @@ def test_CanCombinePairwiseAssociation():
 	eq_(len(assocs), 5)
 	eq_(assocs.total_counts(), 30)
 	eq_(dict(assocs.items()), expected)
-
-def test_CollectionFeaturesShouldWork():
-	raise NotImplementedError()

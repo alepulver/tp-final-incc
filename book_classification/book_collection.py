@@ -1,7 +1,10 @@
 from collections import Counter, defaultdict
 import book_classification as bc
+import random
 
 class BookCollection:
+	# FIXME: remove duplicates! or add method to do so
+
 	def __init__(self, books, books_by_author):
 		self._books = books
 		self._books_by_author = books_by_author
@@ -53,7 +56,7 @@ class BookCollection:
 		books = [bc.Book.from_file_path(path) for path in path_list]
 		return cls.from_books(books)
 
-	# TODO: move these 2 methods somewhere else
+	# TODO: move these methods somewhere else
 	def exclude_authors_with_less_than(self, n):
 		def condition(author):
 			return len(self.books_by(author)) >= n
@@ -68,3 +71,10 @@ class BookCollection:
 			else:
 				return False
 		return self.partition_books(condition)
+
+	def sample_authors(self, n):
+		authors = random.sample(list(self.authors()), n)
+		return self.filter_authors(lambda x: x in authors)
+	def sample_books(self, n):
+		books = random.sample(list(self.books()), n)
+		return self.filter_books(lambda x: x in books)
