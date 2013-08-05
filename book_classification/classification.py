@@ -5,30 +5,38 @@ from scipy import sparse
 
 # TODO: feature aggregator for collectionfeatures, or a collectionfeatures aggregator for classificationmodel
 
-class ClassificationModelInput:
-	def __init__(self, collection, features_extractor, features_by_book):
+class ReducedMatrixBuilder:
+	def __init__(self, matrix_builder):
+		self._matrix_builder = matrix_builder
+	def for_collection(self, collection):
+		pass
+
+class MatrixBuilder:
+	def __init__(self, collection, features_extractor):
 		self._collection = collection
 		self._features_extractor = features_extractor
-		self._features_by_book = features_by_book
 
 		vocabulary = self._features_extractor.vocabulary()
 		self._features_indexer = bc.NumericIndexer.from_objects(vocabulary)
-		
 		authors = self._collection.authors()
 		self._authors_indexer = bc.NumericIndexer.from_objects(authors)
 
-	def vocabulary(self):
-		pass
-	def extractor(self):
-		pass
-	
-	def data_matrix_for(self, collection):
+		self._matrix = self.build_data_matrix(collection)
+
+	def for_collection(self, collection):
+		data = self.build_data_matrix(collection)
+		authors = build_authors_matrix(collection)
+		return data, authors
+	def for_training_set(self):
+		return self._matrix
+
+	def build_data_matrix(self, collection):
 		if collection == self._collection:
-			another_collection_features = self._features_by_book
-		else:
-			another_collection_features = {}
-			for book in collection.books():
-				another_collection_features[book] = self._features_extractor.extract_from(book)
+			return self._matrix
+
+		collection_features = {}
+		for book in collection.books():
+			collection_features[book] = self._features_extractor.extract_from(book)
 		
 		matrix = sparse.dok_matrix((len(collection), len(self._features_indexer)))
 
@@ -40,41 +48,26 @@ class ClassificationModelInput:
 
 		return matrix.tocsc()
 
-	def authors_matrix_for(self, collection):
+	def build_authors_matrix(self, collection):
 		result = []
 		for book in collection.books():
 			result.append(self._authors_indexer.encode(book.author()))
 		return result
 
-	#def encode_authors(self, sequence):
-	#	return [self._authors_indexer.encode(item) for item in sequence]
 	def decode_authors(self, sequence):
 		return [self._authors_indexer.decode(item) for item in sequence]
 
-	def train(self, collection, modelClass):
-		data = self.data_matrix_for(collection)
-		authors = self.authors_matrix_for(collection)
-		model = modelClass()
-		model.fit(data, authors)
-		return ClassificationModel(self, model)
-
-	@classmethod
-	def from_collection(cls, collection, features_extractor):
-		features_by_book = {}
-		for book in collection.books():
-			features_by_book[book] = features_extractor.extract_from(book)
-		return cls(collection, features_extractor, features_by_book)
-
-
 class ClassificationModel:
-	def __init__(self, model_input, model):
-		self._model_input = model_input
-		self._model = model
+	def __init__(self, matrix_builder, model_class):
+		self._model = model_class()
+		data, authors = self._matrix_builder.for_training_set()
+		self._model.fit(data, authors)
+
 	def classify(self, collection):
 		#book_indexer = bc.NumericIndexer.from_objs(collection.books())
-		result = self._model.predict(self._model_input.data_matrix_for(collection))
+		result = self._model.predict(self._matrix_builder.for_collection(collection))
 		# decode output to book collection with possibly wrong authors
-		return self._model_input.decode_authors(result)
+		return self._matrix_builder.decode_authors(result)
 
 class ClassificationResults:
 	pass

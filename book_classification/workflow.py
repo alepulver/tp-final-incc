@@ -97,5 +97,11 @@ class FeaturesExtractor:
 		self._extraction_env = extraction_env
 	def extract_from(self, book):
 		return self._extraction_env.entropies(book.contents())
+		#entropies = self._extraction_env.entropies(book.contents())
+		#frequencies = self._extraction_env.frequencies(book.contents())
+		#result = {}
+		#for k,v in frequencies.items():
+		#	result[k] = v * entropies[k]
+		#return result
 	def vocabulary(self):
 		return self._extraction_env.vocabulary()
