@@ -117,7 +117,8 @@ class TokenEntropies(Features):
 	def __len__(self):
 		return len(self._sum_freqs)
 	def __getitem__(self, key):
-		coeff = -1 / (math.log(self._total) * self._sum_freqs[key])
+		# FIXME: remove word or return 1 instead of adjusting; add test
+		coeff = -1 / (math.log(self._total) * self._sum_freqs[key] + 10**-300)
 		return coeff * (self._sum_freqs_log[key] - self._sum_freqs[key]*math.log(self._sum_freqs[key]))
 	def total_counts(self):
 		return self._total

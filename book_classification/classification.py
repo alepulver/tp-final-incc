@@ -83,25 +83,15 @@ class ClassificationResults:
 	pass
 
 class Experiment:
-	def __init__(self, model_input, testing_set, model):
-		self.training_set = training_set
-		self.testing_set = testing_set
-		self.model = model
+	def __init__(self, training_col, testing_col, features_extractor, model_class):
+		self._training_col = training_col
+		self._testing_col = testing_col
+		self._features_extractor = features_extractor
+		self._model_class = model_class
+
 	def results(self):
-		model_input = ModelInput(self.training_set, self.Features)
-
-		features_train = model_input.matrix_for(self.training_set)
-		features_test = model_input.matrix_for(self.testing_set)
-
-		#print(features_train.todense())
-
-		model = svm.SVC()
-		model.fit(features_train, list(model_input.encoded_authors_for(self.training_set)))
-		
-		results = model_input.decode_authors(model.predict(features_test))
-		results2 = {}
-		for b,a in zip(self.testing_set, results):
-			results2[b] = a
-
-		#results = {}
-		return results2
+		builder = MatrixBuilder(self._training_col, self._features_extractor)
+		cm = ClassificationModel(builder, self._model_class)
+		# IDEA: use block with implicit input/output conversion, where inside only sklearn code is used
+		# (books and authors are converted to matrices and numbers respectively)
+		return cm.classify(self._testing_col)

@@ -64,9 +64,11 @@ class PossibleFeatureAnalyzer:
 		extraction_env = self._extraction_env.restrict_vocabulary(words)
 		return self.__class__.from_book_collection(self._collection, extraction_env)
 
-	def prune_entropies_quantiles(self, low, high):
-		pairs = [(v,k) for (k,v) in self._entropies.total().items()]
-		return self.prune_quantiles(pairs, low, high)
+	# FIXME: does not work
+	#def prune_entropies_quantiles(self, low, high):
+	#	pairs = [(v,k) for (k,v) in self._entropies.total().items()]
+	#	return self.prune_quantiles(pairs, low, high)
+	
 	def prune_frequencies_quantiles(self, low, high):
 		pairs = [(v,k) for (k,v) in self._frequencies.total().items()]
 		return self.prune_quantiles(pairs, low, high)
@@ -89,8 +91,35 @@ class PossibleFeatureAnalyzer:
 			collection, lambda x: extraction_env.frequencies(x))
 		entropies = bc.HierarchialFeatures.from_book_collection(
 			collection, lambda x: extraction_env.entropies(x))
+		extraction_env = extraction_env.restrict_vocabulary(frequencies.total().keys())
 
 		return cls(collection, extraction_env, frequencies, entropies)
+
+class PossibleVocabularyAnalyzer:
+	def __init__(self, collection, tokenizer, vocabularies_by_book, vocabularies_by_author, words_presence):
+		self._vocabularies_by_book = vocabularies_by_book
+		self._vocabularies_by_author = vocabularies_by_author
+		self._words_presence = words_presence
+
+	def xxx(self):
+		pass
+
+	def from_book_collection(cls, collection, tokenizer):
+		vocabularies_by_book = {}
+		vocabularies_by_author = defaultdict(set)
+		words_presence_by_book = Counter()
+		words_presence_by_author = Counter()
+
+		for book in collection.books():
+			vocabularies_by_book[book] = set(tokenizer.tokens_from(book.contents()))
+			vocabularies_by_author[book.author()].update(vocabularies_by_book[book])
+			for word in vocabularies_by_book[book]:
+				words_presence_by_book[word] += 1
+		for word in vocabularies_by_author.keys():
+			for word in vocabularies_by_book[book]:
+				words_presence[word] += 1
+
+		return cls(collection, tokenizer, vocabularies_by_book, vocabularies_by_author, words_presence)
 
 class FeaturesExtractor:
 	def __init__(self, extraction_env):

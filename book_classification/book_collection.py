@@ -5,6 +5,9 @@ import random
 class BookCollection:
 	# FIXME: remove duplicates! or add method to do so
 
+	# TODO: add functional fold, and visitor pattern for all other
+	# algorithms and feature constructors (like HierarchialFeatures)
+
 	def __init__(self, books, books_by_author):
 		self._books = books
 		self._books_by_author = books_by_author

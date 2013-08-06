@@ -23,13 +23,14 @@ class BasicTokenizer:
 	def restrict_vocabulary(self, words):
 		return FilteringTokenizer(self, words)
 
+# XXX: merging tokenizer, stores how many words were collapsed into one and how
 class StemmingTokenizer:
 	pass
 
 class FilteringTokenizer:
 	def __init__(self, tokenizer, vocabulary):
 		self._tokenizer = tokenizer
-		self._vocabulary = vocabulary
+		self._vocabulary = set(vocabulary)
 
 	def tokens_from(self, text):
 		return filter(lambda x: x in self._vocabulary, self._tokenizer.tokens_from(text))
@@ -154,3 +155,6 @@ class HierarchialFeatures:
 	def dataframe_total(self):
 		return pandas.DataFrame(list(self.total().values()),
 				index = list(self.total().keys()), columns=['Value'])
+
+class HierarchialVocabulary:
+	pass
