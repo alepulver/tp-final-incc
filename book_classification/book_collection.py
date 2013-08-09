@@ -1,6 +1,14 @@
 from collections import Counter, defaultdict
 import book_classification as bc
 import random
+from functools import reduce
+import pandas
+
+class BookCollectionVisitor:
+	def caseAuthor(self, author):
+		raise NotImplementedError()
+	def caseBook(self, book):
+		raise NotImplementedError()
 
 class BookCollection:
 	# FIXME: remove duplicates! or add method to do so
@@ -14,13 +22,42 @@ class BookCollection:
 
 	def __len__(self):
 		return len(self._books)
-
 	def books(self):
 		return self._books
 	def books_by(self, author):
 		return self._books_by_author[author]
 	def authors(self):
 		return self._books_by_author.keys()
+
+	def fold(self, func_author, func_book, base_author, base_book):
+		final_result = base_author
+		for author in self.authors():
+			partial_result = base_book
+			for book in self.books_by(author):
+				partial_result = func_book(book, partial_result)
+			final_result = func_author(author, partial_result, final_result)
+		return final_result
+
+	def as_dataframe(self):
+		result = []
+		for book in self.books():
+			result.append([book.title(), book.author(), len(book.contents()), book])
+		return pandas.DataFrame(result, columns=["Title", "Author", "Size", "Object"])
+
+	@classmethod
+	def from_books(cls, books):
+		_books = set(books)
+		_books_by_author = defaultdict(set)
+		for b in _books:
+			_books_by_author[b.author()].add(b)
+		return cls(_books, _books_by_author)
+
+	@classmethod
+	def from_file_path_list(cls, path_list):
+		books = [bc.Book.from_file_path(path) for path in path_list]
+		return cls.from_books(books)
+
+	# TODO: move these methods somewhere else, or remove in favor of pandas utilities for DataFrame
 
 	def filter_authors(self, condition):
 		result = set()
@@ -46,20 +83,6 @@ class BookCollection:
 		c2 = self.__class__.from_books(books_two)
 		return c1, c2
 
-	@classmethod
-	def from_books(cls, books):
-		_books = set(books)
-		_books_by_author = defaultdict(set)
-		for b in _books:
-			_books_by_author[b.author()].add(b)
-		return cls(_books, _books_by_author)
-
-	@classmethod
-	def from_file_path_list(cls, path_list):
-		books = [bc.Book.from_file_path(path) for path in path_list]
-		return cls.from_books(books)
-
-	# TODO: move these methods somewhere else
 	def exclude_authors_with_less_than(self, n):
 		def condition(author):
 			return len(self.books_by(author)) >= n

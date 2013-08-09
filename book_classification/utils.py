@@ -2,45 +2,57 @@ import nltk
 from functools import reduce
 import pandas
 
-def unzip(sequence):
-	out1 = []
-	out2 = []
-	for v1,v2 in sequence:
-		out1.append(v1)
-		out2.append(v2)
-	return out1, out2
+class Tokenizer:
+	def tokens_from(self, book):
+		raise NotImplementedError()
 
-class BasicTokenizer:
-	def tokens_from(self, text):
+class DummyTokenizer(Tokenizer):
+	def tokens_from(self, sequence):
+		return iter(sequence)
+
+class BasicTokenizer(Tokenizer):
+	def tokens_from(self, book):
 		def is_word(x):
 			return x.isalpha() and len(x) > 2
-		tokens = nltk.wordpunct_tokenize(text.lower())
+		tokens = nltk.wordpunct_tokenize(book.contents().lower())
 
 		return filter(is_word, tokens)
 
 	def vocabulary(self):
 		raise TypeError("BasicTokenizer doesn't have a vocabulary, please use 'restrict_vocabulary'")
-	def restrict_vocabulary(self, words):
-		return FilteringTokenizer(self, words)
+	#def restrict_vocabulary(self, words):
+	#	return FilteringTokenizer(self, words)
 
-# XXX: merging tokenizer, stores how many words were collapsed into one and how
-class StemmingTokenizer:
+# stores each word that it outputs and can answer it
+class RememberingTokenizer(Tokenizer):
 	pass
 
-class FilteringTokenizer:
+# XXX: merging tokenizer, stores how many words were collapsed into one and how
+class StemmingTokenizer(Tokenizer):
+	pass
+
+class FilteringTokenizer(Tokenizer):
 	def __init__(self, tokenizer, vocabulary):
 		self._tokenizer = tokenizer
 		self._vocabulary = set(vocabulary)
 
-	def tokens_from(self, text):
-		return filter(lambda x: x in self._vocabulary, self._tokenizer.tokens_from(text))
+	def tokens_from(self, book):
+		return filter(lambda x: x in self._vocabulary, self._tokenizer.tokens_from(book))
 
 	def vocabulary(self):
 		return self._vocabulary
-	def restrict_vocabulary(self, words):
-		return self.__class__(self._tokenizer, self._vocabulary - words)
+	#def restrict_vocabulary(self, words):
+	#	return self.__class__(self._tokenizer, self._vocabulary - words)
 
-class BasicGrouper:
+class Grouper:
+	def parts_from(self, sequence):
+		raise NotImplementedError()
+
+class DummyGrouper(Grouper):
+	def parts_from(self, sequence):
+		return iter(sequence)
+
+class FixedGrouper(Grouper):
 	def __init__(self, parts_size):
 		self._parts_size = parts_size
 	def parts_from(self, sequence):
@@ -53,7 +65,35 @@ class BasicGrouper:
 		if len(group) > 0:
 			yield group
 
+class SlidingGrouper(Grouper):
+	def __init__(self, parts_size):
+		self._parts_size = parts_size
+	def parts_from(self, sequence):
+		window = []
+		for element in sequence:
+			window.push(element)
+			if len(window) >= self._parts_size:
+				yield window
+				window.pop()
+
 class WeightingWindow:
+	def __len__(self):
+		raise NotImplementedError()
+	def weights_for(self, window):
+		raise NotImplementedError()
+	def center_for(self, window):
+		raise NotImplementedError()
+
+class DenseWeightingWindow(WeightingWindow):
+	pass
+
+class SparseWeightingWindow(WeightingWindow):
+	pass
+
+class FunctionWeightingWindow(WeightingWindow):
+	pass
+
+class WeightingWindow__:
 	# TODO: define symmetric ones by growth function, from 1 to n/2 and reverse after half; normalize at the end
 
 	def __init__(self, weights):
@@ -123,10 +163,10 @@ class HierarchialFeatures:
 		return self._total
 
 	@classmethod
-	def from_book_collection(cls, collection, func):
+	def from_book_collection(cls, collection, extractor):
 		features_by_book = {}
 		for book in collection.books():
-			features_by_book[book] = func(book.contents())
+			features_by_book[book] = extractor.extract_from(book)
 		features_by_author = {}
 		for author in collection.authors():
 			features = (features_by_book[book] for book in collection.books_by(author))
@@ -155,6 +195,3 @@ class HierarchialFeatures:
 	def dataframe_total(self):
 		return pandas.DataFrame(list(self.total().values()),
 				index = list(self.total().keys()), columns=['Value'])
-
-class HierarchialVocabulary:
-	pass

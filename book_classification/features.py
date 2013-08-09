@@ -1,5 +1,10 @@
 from collections import Counter, defaultdict
 import math
+import book_classification as bc
+
+class Extractor:
+	def extract_from(self, book):
+		raise NotImplementedError()
 
 class Features:
 	@classmethod
@@ -22,6 +27,41 @@ class Features:
 		return (self[key] for key in self.keys())
 	def items(self):
 		return ((key, self[key]) for key in self.keys())
+
+class VocabularyExtractor(Extractor):
+	def __init__(self, tokenizer):
+		self._tokenizer = tokenizer
+
+	def extract_from(self, book):
+		data = set()
+		for token in self._tokenizer.tokens_from(book):
+			data.add(token)
+		return TokensVocabulary(data)
+
+class TokenVocabulary(Features):
+	def __init__(self, entries):
+		self._entries = entries
+
+	def combine(self, other):
+		data = self._entries.union(other._entries)
+		return self.__class__(data)
+
+	def __len_(self):
+		return len(self._entries)
+
+class FrequenciesExtractor(Extractor):
+	def __init__(self, tokenizer):
+		self._tokenizer = tokenizer
+
+	def extract_from(self, book):
+		entries = Counter()
+		total = 0
+		for token in self._tokenizer.tokens_from(book):
+			entries[token] += 1
+			total += 1
+		for token in entries.keys():
+			entries[token] /= total
+		return TokenFrequencies(entries, total)
 
 class TokenFrequencies(Features):
 	def __init__(self, entries, total):
@@ -48,16 +88,17 @@ class TokenFrequencies(Features):
 	def keys(self):
 		return self._entries.keys()
 
-	@classmethod
-	def from_tokens(cls, sequence):
-		entries = Counter()
-		total = 0
-		for token in sequence:
-			entries[token] += 1
-			total += 1
-		for token in entries.keys():
-			entries[token] /= total
-		return cls(entries, total)
+class SeriesExtractor(Extractor):
+	def __init__(self, tokenizer):
+		self._tokenizer = tokenizer
+
+	def extract_from(self, book):
+		series = defaultdict(list)
+		total_tokens = 0
+		for index,token in enumerate(self._tokenizer.tokens_from(book)):
+			series[token].append(index)
+			total_tokens += 1
+		return TokenSeries(series, total_tokens)
 
 class TokenSeries(Features):
 	def __init__(self, entries, total):
@@ -84,14 +125,27 @@ class TokenSeries(Features):
 	def keys(self):
 		return self._entries.keys()
 
-	@classmethod
-	def from_tokens(cls, sequence):
-		series = defaultdict(list)
-		total_tokens = 0
-		for index,token in enumerate(sequence):
-			series[token].append(index)
-			total_tokens += 1
-		return cls(series, total_tokens)
+class EntropiesExtractor(Extractor):
+	def __init__(self, tokenizer, grouper):
+		self._tokenizer = tokenizer
+		self._grouper = grouper
+
+	def extract_from(self, book):
+		parts = self._grouper.parts_from(self._tokenizer.tokens_from(book))
+		frequencies_extractor = FrequenciesExtractor(bc.DummyTokenizer())
+		frequencies_list = (frequencies_extractor.extract_from(p) for p in parts)
+
+		sum_freqs = Counter()
+		sum_freqs_log = Counter()
+		total = 0
+
+		for frequencies in frequencies_list:
+			for k,v in frequencies.items():
+				sum_freqs[k] += v
+				sum_freqs_log[k] += v * math.log(v)
+			total += 1
+
+		return TokenEntropies(sum_freqs, sum_freqs_log, total)
 
 class TokenEntropies(Features):
 	def __init__(self, sum_freqs, sum_freqs_log, total):
@@ -125,63 +179,49 @@ class TokenEntropies(Features):
 	def keys(self):
 		return self._sum_freqs.keys()
 
-	@classmethod
-	def from_parts(cls, parts):
-		frequencies = (TokenFrequencies.from_tokens(tokens) for tokens in parts)
-		return cls.from_frequencies(frequencies)
+class PairwiseAssociationExtractor(Extractor):
+	def __init__(self, tokenizer, weighting_window):
+		self._tokenizer = tokenizer
+		self._weighting_window = weighting_window
+		self._grouper = bc.SlidingGrouper(len(self._weighting_window))
 
-	@classmethod
-	def from_frequencies(cls, sequence):
-		sum_freqs = Counter()
-		sum_freqs_log = Counter()
+	def extract_from(self, book):
+		entries = Counter()
 		total = 0
+		
+		for window in self._grouper.parts_from(self._tokenizer.tokens_from(book)):
+			center = self._weighting_window.center_for(window)
+			for element,weight in self._weighting_window.weights_for(window):
+				entries[(center,element)] += weight
+				total += 1
 
-		for frequencies in sequence:
-			for k,v in frequencies.items():
-				sum_freqs[k] += v
-				sum_freqs_log[k] += v * math.log(v)
-			total += 1
-
-		return cls(sum_freqs, sum_freqs_log, total)
+		return TokenPairwiseAssociation(entries, total)
 
 class TokenPairwiseAssociation(Features):
-	def __init__(self, entries, total, weights, elements_before, elements_after):
+	def __init__(self, entries, total):
 		self._entries = entries
 		self._total = total
-		self._weights = weights
-		self._elements_before = elements_before
-		self._elements_after = elements_after
+
+	def combine(self, other):
+		# XXX: is not exact because some information is discarded,
+		# but at least it's associative and commutative
+		entries = Counter()
+		total = 0
+
+		for k,v in self.items():
+			entries[k] += v
+			total += 1
+		for k,v in other.items():
+			entries[k] += v
+			total += 1
+
+		return TokenPairwiseAssociation(entries, total)
 
 	def __len__(self):
 		return len(self._weights)
 	def __getitem__(self, key):
-		# XXX: relativize, divide by total; take into account for combining
 		return self._entries[key]
 	def total_counts(self):
 		return self._total
 	def keys(self):
 		return self._entries.keys()
-
-	@classmethod
-	def from_tokens(cls, tokens, weights):
-		my_tokens = list(tokens)
-		my_weights = list(weights)
-		assert(len(my_tokens) >= len(my_weights))
-		assert(len(my_weights) > 0 and len(my_weights) % 2 == 1)
-		elements_before = None
-		elements_after = None
-
-		middle = len(my_weights) // 2 + 1
-		entries = Counter()
-		total = 0
-		for i in range(middle, len(my_tokens) - middle):
-			tokenOne = my_tokens[i+middle]
-			for j in range(len(my_weights)):
-				#if j == middle:
-				#	continue
-				tokenTwo = my_tokens[i-middle+j]
-				weight = my_weights[j]
-				entries[(tokenOne, tokenTwo)] += weight
-				total += 1
-
-		return cls(entries, total, weights, elements_before, elements_after)

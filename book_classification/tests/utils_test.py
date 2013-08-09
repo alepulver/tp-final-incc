@@ -1,58 +1,36 @@
 import book_classification as bc
 from nose.tools import *
 
+class DummyBook:
+	def __init__(self, text):
+		self._text = text
+	def contents(self):
+		return self._text
+
 def test_BasicTokenizerShouldProcessASentence():
 	tokenizer = bc.BasicTokenizer()
-	text = "This, I think; is a n1c3.sentence..."
-	result = list(tokenizer.tokens_from(text))
+	book = DummyBook("This, I think; is a n1c3.sentence...")
+	result = list(tokenizer.tokens_from(book))
 	eq_(result, ["this", "think", "sentence"])
 
 def test_FilteringTokenizerShouldRestrictWords():
 	tokenizer = bc.FilteringTokenizer(bc.BasicTokenizer(), ['two', 'three'])
-	text = "one two one two three one two four"
-	result = list(tokenizer.tokens_from(text))
+	book = DummyBook("one two one two three one two four")
+	result = list(tokenizer.tokens_from(book))
 	eq_(result, ["two", "two", "three", "two"])
 
 def test_TokenizersCanRestrictVocabulary():
 	raise NotImplementedError()
 
 def test_GrouperCanGroupMultiplesOfSize():
-	grouper = bc.BasicGrouper(3)
+	grouper = bc.FixedGrouper(3)
 	result = grouper.parts_from('abcdef')
 	eq_(list(result), [['a', 'b', 'c'], ['d', 'e', 'f']])
 
 def test_GrouperCanGroupNonMultiplesOfSize():
-	grouper = bc.BasicGrouper(3)
+	grouper = bc.FixedGrouper(3)
 	result = grouper.parts_from('abcdefgh')
 	eq_(list(result), [['a', 'b', 'c'], ['d', 'e', 'f'], ['g', 'h']])
-
-# TODO: add intelligible message to exception
-@raises(Exception)
-def test_WeightingWindowCantHaveEvenSize():
-	result = bc.WeightingWindow.uniform(4)
-	pass
-
-"""
-def test_WeightingWindowCanMakeUniform():
-	result = bc.WeightingWindow.uniform(5)
-	eq_(result, [])
-
-def test_WeightingWindowCanMakeTriangular():
-	result = bc.WeightingWindow.triangular(5, 2)
-	eq_(result, [])
-
-def test_WeightingWindowCanMakeGaussian():
-	result = bc.WeightingWindow.uniform(5, 0, 3)
-	eq_(result, [])
-
-def test_WeightingWindowCantMakeCustomWithInvalidValues():
-	result = bc.WeightingWindow.uniform(5, 0, 3)
-	eq_(result, [])
-
-def test_WeightingWindowCanMakeCustom():
-	result = bc.WeightingWindow.uniform(5, 0, 3)
-	eq_(result, [])
-"""
 
 def test_NumericIndexerOnlyRecognizesSomeTokens():
 	aNumericIndexer = bc.NumericIndexer(['one', 'two'])

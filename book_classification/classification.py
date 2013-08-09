@@ -3,32 +3,34 @@ from sklearn.decomposition import TruncatedSVD
 import book_classification as bc
 from scipy import sparse
 
+# TODO: aggregated feature extractors
 
-# TODO: feature aggregator for collectionfeatures, or a collectionfeatures aggregator for classificationmodel
-
-class MatrixTransformer:
-	def __init__(self, matrix_builder):
-		self._matrix_builder = matrix_builder
-	def for_collection(self, collection):
-		pass
-	def for_training_set(self):
-		pass
-	def decode_authors(self, sequence):
-		return self._matrix_builder.decode_authors(sequence)
+class MatrixBuilderCreator:
+	def __init__(self, extractor, transformer):
+		self._extractor = extractor
+		self._transformer = transformer
+	
+	def create_from(self, collection):
+		return MatrixBuilder(collection, extractor, transformer)
 
 class MatrixBuilder:
-	def __init__(self, collection, features_extractor):
+	def __init__(self, collection, extractor, transformer):
+		# always get vocabulary from extracted collection features
+		# to restrict, use a restricted vocabulary inside the extractor
+		# NOTE that it's required to tell the extractor to only use that vocabulary
+
 		self._collection = collection
-		self._features_extractor = features_extractor
+		self._extractor = extractor
+		self._transformer = transformer
+
+		self._data_matrix = self.build_data_matrix(collection)
+		self._authors_matrix = self.build_authors_matrix(collection)
+		self._svd = TruncatedSVD(50).fit(self._data_matrix)
 
 		vocabulary = self._features_extractor.vocabulary()
 		self._features_indexer = bc.NumericIndexer.from_objects(vocabulary)
 		authors = self._collection.authors()
 		self._authors_indexer = bc.NumericIndexer.from_objects(authors)
-
-		self._data_matrix = self.build_data_matrix(collection)
-		self._authors_matrix = self.build_authors_matrix(collection)
-		self._svd = TruncatedSVD(50).fit(self._data_matrix)
 
 	def for_collection(self, collection):
 		data = self._svd.transform(self.build_data_matrix(collection))
@@ -66,9 +68,9 @@ class MatrixBuilder:
 		return [self._authors_indexer.decode(item) for item in sequence]
 
 class ClassificationModel:
-	def __init__(self, matrix_builder, model_class):
+	def __init__(self, matrix_builder, model):
 		self._matrix_builder = matrix_builder
-		self._model = model_class()
+		self._model = model
 		data, authors = self._matrix_builder.for_training_set()
 		self._model.fit(data, authors)
 
@@ -82,6 +84,7 @@ class ClassificationModel:
 class ClassificationResults:
 	pass
 
+# pass CV method, etc
 class Experiment:
 	def __init__(self, training_col, testing_col, features_extractor, model_class):
 		self._training_col = training_col
