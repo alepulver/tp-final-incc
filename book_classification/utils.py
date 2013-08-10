@@ -20,8 +20,8 @@ class BasicTokenizer(Tokenizer):
 
 	def vocabulary(self):
 		raise TypeError("BasicTokenizer doesn't have a vocabulary, please use 'restrict_vocabulary'")
-	#def restrict_vocabulary(self, words):
-	#	return FilteringTokenizer(self, words)
+	def restrict_vocabulary(self, words):
+		return FilteringTokenizer(self, words)
 
 # stores each word that it outputs and can answer it
 class RememberingTokenizer(Tokenizer):
@@ -41,8 +41,8 @@ class FilteringTokenizer(Tokenizer):
 
 	def vocabulary(self):
 		return self._vocabulary
-	#def restrict_vocabulary(self, words):
-	#	return self.__class__(self._tokenizer, self._vocabulary - words)
+	def restrict_vocabulary(self, words):
+		return self.__class__(self._tokenizer, self._vocabulary - words)
 
 class Grouper:
 	def parts_from(self, sequence):
