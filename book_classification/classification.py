@@ -5,30 +5,21 @@ from scipy import sparse
 
 # TODO: aggregated feature extractors
 
-# rewrite this class and rename
-class MatrixBuilderCreator:
-	def __init__(self, extractor, transformer_class):
-		self._extractor = extractor
-		self._transformer_class = transformer_class
-	
-	def create_from(self, collection):
-		matrix_builder = MatrixBuilder(collection, self._extractor)
-		return MatrixTransformer(matrix_builder, self._transformer_class())
-
 class FeaturesToMatrixEncoder:
-	def __init__(self, base_collection, fixed_extractor):
-		self._base_collection = base_collection
+	def __init__(self, fixed_extractor, authors):
 		self._extractor = fixed_extractor
-		
-		authors = self._base_collection.authors()
-		self._authors_indexer = bc.NumericIndexer.from_objects(authors)
-		vocabulary = self._fixed_extractor.vocabulary()
-		self._features_indexer = bc.NumericIndexer.from_objects(vocabulary)
+		self._features_indexer = bc.NumericIndexer(self._extractor.vocabulary())
+		self._authors_indexer = bc.NumericIndexer(authors)
 
 	def encode_collection(self, collection):
+		matrix = self.encode_features(collection)
+		authors = self.encode_authors(collection.authors())
+		return matrix, authors
+
+	def encode_features(self, collection):
 		collection_features = {}
 		for book in collection.books():
-			collection_features[book] = self._features_extractor.extract_from(book)
+			collection_features[book] = self._extractor.extract_from(book)
 		
 		matrix = sparse.dok_matrix((len(collection), len(self._features_indexer)))
 		for i,book in enumerate(collection.books()):
@@ -40,40 +31,33 @@ class FeaturesToMatrixEncoder:
 		#return matrix.tocsc()
 		return matrix
 
-	def decode_collection(self, collection):
+	def decode_features(self, collection):
 		raise NotImplementedError()
 
 	def encode_authors(self, collection):
 		return [self._authors_indexer.encode(book.author()) for book in collection.books()]
 	def decode_authors(self, sequence):
 		return [self._authors_indexer.decode(item) for item in sequence]
-	def base_collection(self):
-		return self._base_collection
-
-class MatrixTransformer:
-	def __init__(self, base_matrix, transformer):
-		self._base_matrix = matrix_builder
-		self._transformer = transformer
-		self._transformer.fit(self._base_matrix)
-	
-	def transform(self, matrix):
-		return self._transformer.transform(matrix)
 
 class ClassificationModel:
-	def __init__(self, matrix_builder, model):
-		self._matrix_builder = matrix_builder
+	def __init__(self, training, fixed_extractor, transformer, model):
+		self._encoder = FeaturesToMatrixEncoder(fixed_extractor, training.authors())
+		self._transformer = transformer
 		self._model = model
 
-		collection = self._matrix_builder.base_collection()
-		matrix = self._matrix_builder.books_matrix(collection)
-		authors = self._matrix_builder.encode_authors(collection)
-		self._model.fit(matrix, authors)
+		matrix, authors = self._encoder.encode_collection(training)
+		self._transformer.fit(matrix)
+		processed_matrix = self._transformer.transform(matrix)
+		self._model.fit(processed_matrix, authors)
 
 	def classify(self, collection):
 		#book_indexer = bc.NumericIndexer.from_objs(collection.books())
-		data, authors = self._matrix_builder.for_collection(collection)
-		result = self._model.predict(data)
-		# decode output to book collection with possibly wrong authors
+		matrix, authors = self._encoder.encode_collection(collection)
+		processed_matrix = self._transformer.transform(matrix)
+		result = self._model.predict(processed_matrix)
+
+		# decode output to book collection with possibly wrong authors?
+		# or return classification results object
 		return self._matrix_builder.decode_authors(result)
 
 class ClassificationResults:
@@ -88,7 +72,7 @@ class Experiment:
 		self._training_col = training_col
 		self._testing_col = testing_col
 		self._extractor = extractor
-		self._matrix_builder = MatrixBuilderCreator(extractor, transformer_class)
+		self._matrix_builder = FeaturesToMatrixEncoder(extractor, transformer_class)
 		self._model_class = model_class()
 
 	def results(self):
@@ -99,4 +83,12 @@ class Experiment:
 		return cm.classify(self._testing_col)
 
 class SimpleExperiment:
+	pass
+
+class ExperimentScheme:
+	pass
+
+class ExperimentSeries:
+	# take experiment constructor, dataset, partitioning/cv scheme
+	# report individual and aggregated statistics
 	pass

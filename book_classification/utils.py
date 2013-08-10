@@ -1,6 +1,4 @@
 import nltk
-from functools import reduce
-import pandas
 
 class Tokenizer:
 	def tokens_from(self, book):
@@ -18,18 +16,13 @@ class BasicTokenizer(Tokenizer):
 
 		return filter(is_word, tokens)
 
-	def vocabulary(self):
-		raise TypeError("BasicTokenizer doesn't have a vocabulary, please use 'restrict_vocabulary'")
-	def restrict_vocabulary(self, words):
-		return FilteringTokenizer(self, words)
-
 # stores each word that it outputs and can answer it
 class RememberingTokenizer(Tokenizer):
 	pass
-
-# XXX: merging tokenizer, stores how many words were collapsed into one and how
+# merging tokenizer, stores how many words were collapsed into one and how
 class StemmingTokenizer(Tokenizer):
 	pass
+# XXX: alternatively, provide event listener to every tokenizer so they can store things
 
 class FilteringTokenizer(Tokenizer):
 	def __init__(self, tokenizer, vocabulary):
@@ -38,11 +31,6 @@ class FilteringTokenizer(Tokenizer):
 
 	def tokens_from(self, book):
 		return filter(lambda x: x in self._vocabulary, self._tokenizer.tokens_from(book))
-
-	def vocabulary(self):
-		return self._vocabulary
-	def restrict_vocabulary(self, words):
-		return self.__class__(self._tokenizer, self._vocabulary - words)
 
 class Grouper:
 	def parts_from(self, sequence):
@@ -71,14 +59,17 @@ class SlidingGrouper(Grouper):
 	def parts_from(self, sequence):
 		window = []
 		for element in sequence:
-			window.push(element)
+			window.append(element)
 			if len(window) >= self._parts_size:
-				yield window
-				window.pop()
+				# need to copy because it is changed later
+				yield list(window)
+				window.pop(0)
+
+# IDEA: dynamic size window, the one choosing the size is the caller?
 
 class WeightingWindow:
-	def __len__(self):
-		raise NotImplementedError()
+	#def __len__(self):
+	#	raise NotImplementedError()
 	def weights_for(self, window):
 		raise NotImplementedError()
 	def center_for(self, window):
@@ -92,6 +83,11 @@ class SparseWeightingWindow(WeightingWindow):
 
 class FunctionWeightingWindow(WeightingWindow):
 	pass
+
+class WeightingWindowFactory:
+	@classmethod
+	def uniform(cls, size):
+		pass
 
 class WeightingWindow__:
 	# TODO: define symmetric ones by growth function, from 1 to n/2 and reverse after half; normalize at the end
@@ -126,72 +122,28 @@ class WeightingWindow__:
 		pass
 
 class NumericIndexer:
-    def __init__(self, objs):
-        self._objects = list(objs)
-        self._indices = dict(zip(self._objects, range(len(self._objects))))
+	def __init__(self, objs):
+		# add to list without duplicates, but avoid traversing the list
+		present = set()
+		self._objects = []
+		for element in objs:
+			if element not in present:
+				present.add(element)
+				self._objects.append(element)
 
-    def __len__(self):
-        return len(self._objects)
+		self._indices = dict(zip(self._objects, range(len(self._objects))))
 
-    def can_encode(self, obj):
-        return obj in self._indices
+	def __len__(self):
+		return len(self._objects)
 
-    def can_decode(self, index):
-        return index < len(self)
+	def can_encode(self, obj):
+		return obj in self._indices
 
-    def encode(self, obj):
-        return self._indices[obj]
+	def can_decode(self, index):
+		return index < len(self)
 
-    def decode(self, index):
-        return self._objects[index]
+	def encode(self, obj):
+		return self._indices[obj]
 
-    @classmethod
-    def from_objects(cls, objs):
-        return cls(set(objs))
-
-class HierarchialFeatures:
-	def __init__(self, by_book, by_author, total):
-		self._by_book = by_book
-		self._by_author = by_author
-		self._total = total
-
-	def by_book(self, book):
-		return self._by_book[book]
-	def by_author(self, author):
-		return self._by_authors[author]
-	def total(self):
-		return self._total
-
-	@classmethod
-	def from_book_collection(cls, collection, extractor):
-		features_by_book = {}
-		for book in collection.books():
-			features_by_book[book] = extractor.extract_from(book)
-		features_by_author = {}
-		for author in collection.authors():
-			features = (features_by_book[book] for book in collection.books_by(author))
-			features_by_author[author] = reduce(lambda x,y: x.combine(y), features)
-		features_total = reduce(lambda x,y: x.combine(y), features_by_author.values())
-
-		return cls(features_by_book, features_by_author, features_total)
-
-	# TODO: move these methods somewhere else
-	def dataframe_books(self):
-		frames = []
-		for book,features in self._by_book.items():
-			df = pandas.DataFrame(list(features.values()),
-				index = list(features.keys()), columns=[book.title()])
-			frames.append(df)
-		return pandas.concat(frames)
-	
-	def dataframe_authors(self):
-		frames = []
-		for author,features in self._by_author.items():
-			df = pandas.DataFrame(list(features.values()),
-				index = list(features.keys()), columns=[author])
-			frames.append(df)
-		return pandas.concat(frames)
-	
-	def dataframe_total(self):
-		return pandas.DataFrame(list(self.total().values()),
-				index = list(self.total().keys()), columns=['Value'])
+	def decode(self, index):
+		return self._objects[index]

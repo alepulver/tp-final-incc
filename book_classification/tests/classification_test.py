@@ -14,8 +14,9 @@ def test_CanClassifyAPairOfBooks():
 	training_set = bc.BookCollection({my_book_one, my_book_two})
 	testing_set = bc.BookCollection({my_book_three, my_book_four})
 	tokenizer = bc.BasicTokenizer()
-	indexer = bc.PossibleFeatureAnalyzer.from_documents(tokenizer, [b.contents for b in training_set]).build_indexer()
-	experiment = bc.Experiment(training_set, testing_set, bc.WordFrequencyExtractor(tokenizer, indexer))
+	#indexer = bc.PossibleFeatureAnalyzer.from_documents(tokenizer, [b.contents for b in training_set]).build_indexer()
+	extractor = bc.TokenFrequencyExtractor(tokenizer)
+	experiment = bc.Experiment(training_set, testing_set, )
 	eq_(experiment.results(), {my_book_three: "A", my_book_four: "B"})
 
 def test_CanLoadTestCollection():

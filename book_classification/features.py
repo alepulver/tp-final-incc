@@ -5,24 +5,23 @@ import book_classification as bc
 class Extractor:
 	def extract_from(self, book):
 		raise NotImplementedError()
-	def with_another_tokenizer(self, tokenizer):
-		raise NotImplementedError()
-	def tokenizer(self):
-		raise NotImplementedError()
-	def vocabulary(self):
-		raise NotImplementedError()
 
 class FixedExtractor(Extractor):
-	def __init__(self, extractor, collection):
-		self._vocabulary = bc.HierarchialFeatures.from_collection(collection,
-			VocabularyExtractor(extractor.toxenizer()))
-		tokenizer = FilteringTokenizer(extractor.tokenizer(), self._vocabulary.total().keys())
-		self._extractor = extractor.with_another_tokenizer(tokenizer)
+	def __init__(self, extractor, vocabulary):
+		# just ignore feature names in vocabulary, or better, let vocabulary decide
+		# (useful for example in word pairs)
+
+		self._extractor = extractor
+		self._vocabulary = vocabulary
 	
 	def extract_from(self, book):
 		return self._extractor.extract_from(book)
-	def vocabulary(self):
-		return self._vocabulary.total().keys()
+	#def vocabulary(self):
+	#	return self._vocabulary.total().keys()
+
+	@classmethod
+	def from_collection(cls, extractor, collection):
+		pass
 
 class Features:
 	@classmethod
@@ -81,11 +80,6 @@ class FrequenciesExtractor(Extractor):
 			entries[token] /= total
 		return TokenFrequencies(entries, total)
 
-	def with_another_tokenizer(self, tokenizer):
-		return self.__class__(tokenizer)
-	def tokenizer(self):
-		return self._tokenizer
-
 class TokenFrequencies(Features):
 	def __init__(self, entries, total):
 		self._entries = entries
@@ -122,11 +116,6 @@ class SeriesExtractor(Extractor):
 			series[token].append(index)
 			total_tokens += 1
 		return TokenSeries(series, total_tokens)
-
-	def with_another_tokenizer(self, tokenizer):
-		return self.__class__(tokenizer)
-	def tokenizer(self):
-		return self._tokenizer
 
 class TokenSeries(Features):
 	def __init__(self, entries, total):
@@ -175,11 +164,6 @@ class EntropiesExtractor(Extractor):
 
 		return TokenEntropies(sum_freqs, sum_freqs_log, total)
 
-	def with_another_tokenizer(self, tokenizer):
-		return self.__class__(tokenizer, self._grouper)
-	def tokenizer(self):
-		return self._tokenizer
-
 class TokenEntropies(Features):
 	def __init__(self, sum_freqs, sum_freqs_log, total):
 		self._sum_freqs = sum_freqs
@@ -214,10 +198,11 @@ class TokenEntropies(Features):
 
 # TODO: only restrict tokenizer, but return all combinations with zero value as features and put them in matrix
 class PairwiseAssociationExtractor(Extractor):
-	def __init__(self, tokenizer, weighting_window):
+	def __init__(self, tokenizer, window_size, weighting_window):
 		self._tokenizer = tokenizer
+		self._window_size = weighting_window
 		self._weighting_window = weighting_window
-		self._grouper = bc.SlidingGrouper(len(self._weighting_window))
+		self._grouper = bc.SlidingGrouper(self._window_size)
 
 	def extract_from(self, book):
 		entries = Counter()
@@ -230,11 +215,6 @@ class PairwiseAssociationExtractor(Extractor):
 				total += 1
 
 		return TokenPairwiseAssociation(entries, total)
-
-	def with_another_tokenizer(self, tokenizer):
-		return self.__class__(tokenizer, self._weighting_window)
-	def tokenizer(self):
-		return self._tokenizer
 
 class TokenPairwiseAssociation(Features):
 	def __init__(self, entries, total):

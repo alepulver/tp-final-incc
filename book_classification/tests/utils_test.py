@@ -19,18 +19,32 @@ def test_FilteringTokenizerShouldRestrictWords():
 	result = list(tokenizer.tokens_from(book))
 	eq_(result, ["two", "two", "three", "two"])
 
-def test_TokenizersCanRestrictVocabulary():
-	raise NotImplementedError()
-
-def test_GrouperCanGroupMultiplesOfSize():
+def test_FixedGrouperCanGroupMultiplesOfSize():
 	grouper = bc.FixedGrouper(3)
 	result = grouper.parts_from('abcdef')
 	eq_(list(result), [['a', 'b', 'c'], ['d', 'e', 'f']])
 
-def test_GrouperCanGroupNonMultiplesOfSize():
+def test_FixedGrouperCanGroupNonMultiplesOfSize():
 	grouper = bc.FixedGrouper(3)
 	result = grouper.parts_from('abcdefgh')
 	eq_(list(result), [['a', 'b', 'c'], ['d', 'e', 'f'], ['g', 'h']])
+
+def test_SlidingGrouperWithLessThanWindowSize():
+	grouper = bc.SlidingGrouper(3)
+	result = grouper.parts_from([0, 1])
+	eq_(list(result), [])
+
+def test_SlidingGrouperWithExactlyWindowSize():
+	grouper = bc.SlidingGrouper(3)
+	result = grouper.parts_from([0, 1, 2])
+	eq_(list(result), [[0, 1, 2]])
+
+def test_SlidingGrouperWithMoreThanWindowSize():
+	grouper = bc.SlidingGrouper(3)
+	result = grouper.parts_from([0, 1, 2, 3, 4])
+	eq_(list(result), [[0, 1, 2], [1, 2, 3], [2, 3, 4]])
+
+# XXX: weighting window tests
 
 def test_NumericIndexerOnlyRecognizesSomeTokens():
 	aNumericIndexer = bc.NumericIndexer(['one', 'two'])

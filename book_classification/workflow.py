@@ -3,6 +3,55 @@ import book_classification as bc
 import pandas
 from functools import reduce
 
+# XXX: this is structurally like a collection, in the sense that offers data for each book and author
+# but in addition, there is a total
+class HierarchialFeatures:
+	def __init__(self, by_book, by_author, total):
+		self._by_book = by_book
+		self._by_author = by_author
+		self._total = total
+
+	def by_book(self, book):
+		return self._by_book[book]
+	def by_author(self, author):
+		return self._by_authors[author]
+	def total(self):
+		return self._total
+
+	@classmethod
+	def from_book_collection(cls, collection, extractor):
+		features_by_book = {}
+		for book in collection.books():
+			features_by_book[book] = extractor.extract_from(book)
+		features_by_author = {}
+		for author in collection.authors():
+			features = (features_by_book[book] for book in collection.books_by(author))
+			features_by_author[author] = reduce(lambda x,y: x.combine(y), features)
+		features_total = reduce(lambda x,y: x.combine(y), features_by_author.values())
+
+		return cls(features_by_book, features_by_author, features_total)
+
+	# TODO: move these methods somewhere else
+	def dataframe_books(self):
+		frames = []
+		for book,features in self._by_book.items():
+			df = pandas.DataFrame(list(features.values()),
+				index = list(features.keys()), columns=[book.title()])
+			frames.append(df)
+		return pandas.concat(frames)
+	
+	def dataframe_authors(self):
+		frames = []
+		for author,features in self._by_author.items():
+			df = pandas.DataFrame(list(features.values()),
+				index = list(features.keys()), columns=[author])
+			frames.append(df)
+		return pandas.concat(frames)
+	
+	def dataframe_total(self):
+		return pandas.DataFrame(list(self.total().values()),
+				index = list(self.total().keys()), columns=['Value'])
+
 class PossibleFeatureAnalyzer:
 	def __init__(self, collection, extraction_env, frequencies, entropies):
 		self._collection = collection
