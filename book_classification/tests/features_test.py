@@ -1,6 +1,18 @@
 import book_classification as bc
 from nose.tools import *
 
+def test_CanExtractVocabularies():
+	tokenizer = bc.DummyTokenizer()
+	extractor = bc.VocabulariesExtractor(tokenizer)
+	
+	vocabularies = extractor.extract_from(
+		["one", "two", "one", "three", "three", "three", "three"])
+	expected = {'three': 1, 'one': 1, 'two': 1}
+	
+	eq_(len(vocabularies), 3)
+	eq_(vocabularies.total_counts(), 3)
+	eq_(dict(vocabularies.items()), expected)
+
 def test_CanExtractFrequencies():
 	tokenizer = bc.DummyTokenizer()
 	extractor = bc.FrequenciesExtractor(tokenizer)
@@ -55,6 +67,19 @@ def test_CanExtractPairwiseAssociation():
 	eq_(len(assocs), 5)
 	eq_(assocs.total_counts(), 30)
 	eq_(dict(assocs.items()), expected)
+
+def test_CanCombineVocabularies():
+	tokenizer = bc.DummyTokenizer()
+	extractor = bc.VocabulariesExtractor(tokenizer)
+	
+	vocabulariesOne = extractor.extract_from(["one", "two", "three", "three"])
+	vocabulariesTwo = extractor.extract_from(["one", "three", "three"])	
+	result = vocabulariesOne.combine(vocabulariesTwo)
+	expected = {'three': 1, 'one': 1, 'two': 1}
+	
+	eq_(len(result), 3)
+	eq_(result.total_counts(), 3)
+	eq_(dict(result.items()), expected)
 
 def test_CanCombineFrequencies():
 	tokenizer = bc.DummyTokenizer()
@@ -115,3 +140,29 @@ def test_CanCombinePairwiseAssociation():
 	eq_(len(assocs), 5)
 	eq_(assocs.total_counts(), 30)
 	eq_(dict(assocs.items()), expected)
+
+def test_FixedExtractorBehavesTheSameWithFullVocabulary():
+	tokens = ["one", "two", "one", "three", "three", "three", "three"]
+	tokenizer = bc.DummyTokenizer()
+	vocabulary = bc.VocabulariesExtractor(tokenizer).extract_from(tokens)
+	extractor = bc.FixedExtractor(bc.VocabulariesExtractor(tokenizer), vocabulary)
+	
+	vocabularies = extractor.extract_from(tokens)
+	expected = {'three': 1, 'one': 1, 'two': 1}
+	
+	eq_(len(vocabularies), 3)
+	eq_(vocabularies.total_counts(), 3)
+	eq_(dict(vocabularies.items()), expected)
+
+def test_FixedExtractorOmitsFeatures():
+	tokens = ["one", "two", "one", "three", "three", "three", "three"]
+	tokenizer = bc.DummyTokenizer()
+	vocabulary = ["one", "three"]
+	extractor = bc.FixedExtractor(bc.VocabulariesExtractor(tokenizer), vocabulary)
+	
+	vocabularies = extractor.extract_from(tokens)
+	expected = {'three': 1, 'one': 1}
+	
+	eq_(len(vocabularies), 2)
+	eq_(vocabularies.total_counts(), 2)
+	eq_(dict(vocabularies.items()), expected)

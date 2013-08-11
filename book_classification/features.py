@@ -8,20 +8,17 @@ class Extractor:
 
 class FixedExtractor(Extractor):
 	def __init__(self, extractor, vocabulary):
-		# just ignore feature names in vocabulary, or better, let vocabulary decide
-		# (useful for example in word pairs)
-
 		self._extractor = extractor
 		self._vocabulary = vocabulary
 	
 	def extract_from(self, book):
-		return self._extractor.extract_from(book)
+		return FixedFeatures(self._extractor.extract_from(book), self._vocabulary)
 	#def vocabulary(self):
 	#	return self._vocabulary.total().keys()
 
 	@classmethod
 	def from_collection(cls, extractor, collection):
-		pass
+		raise NotImplementedError()
 
 class Features:
 	@classmethod
@@ -44,27 +41,46 @@ class Features:
 		return (self[key] for key in self.keys())
 	def items(self):
 		return ((key, self[key]) for key in self.keys())
+	def __contains__(self, key):
+		return key in self.keys()
 
-class VocabularyExtractor(Extractor):
+class FixedFeatures(Features):
+	def __init__(self, features, vocabulary):
+		# IDEA: let vocabulary decide, instead of passing the complete set
+		# it only needs to be able to tell its own length, but not which elements
+		self._features = features
+		self._vocabulary = vocabulary
+		raise NotImplementedError()
+	# TODO ...
+
+class VocabulariesExtractor(Extractor):
 	def __init__(self, tokenizer):
 		self._tokenizer = tokenizer
 
 	def extract_from(self, book):
-		data = set()
+		data = {}
 		for token in self._tokenizer.tokens_from(book):
-			data.add(token)
-		return TokensVocabulary(data)
+			data[token] = True
+		return TokenVocabularies(data)
 
-class TokenVocabulary(Features):
+class TokenVocabularies(Features):
 	def __init__(self, entries):
 		self._entries = entries
 
 	def combine(self, other):
-		data = self._entries.union(other._entries)
+		data = self._entries.copy()
+		for k in other._entries.keys():
+			data[k] = True
 		return self.__class__(data)
 
-	def __len_(self):
+	def __len__(self):
 		return len(self._entries)
+	def __getitem__(self, key):
+		return self._entries[key]
+	def total_counts(self):
+		return len(self)
+	def keys(self):
+		return self._entries.keys()
 
 class FrequenciesExtractor(Extractor):
 	def __init__(self, tokenizer):

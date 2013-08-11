@@ -14,7 +14,7 @@ class HierarchialFeatures:
 	def by_book(self, book):
 		return self._by_book[book]
 	def by_author(self, author):
-		return self._by_authors[author]
+		return self._by_author[author]
 	def total(self):
 		return self._total
 
@@ -51,6 +51,9 @@ class HierarchialFeatures:
 	def dataframe_total(self):
 		return pandas.DataFrame(list(self.total().values()),
 				index = list(self.total().keys()), columns=['Value'])
+
+	def dataframe_books_and_authors(self):
+		pass
 
 class PossibleFeatureAnalyzer:
 	def __init__(self, collection, extraction_env, frequencies, entropies):
@@ -110,28 +113,87 @@ class PossibleFeatureAnalyzer:
 
 		return cls(collection, extraction_env, frequencies, entropies)
 
-class PossibleVocabularyAnalyzer:
-	def __init__(self, collection, tokenizer, vocabularies_by_book, vocabularies_by_author, words_presence):
-		self._vocabularies_by_book = vocabularies_by_book
-		self._vocabularies_by_author = vocabularies_by_author
-		self._words_presence = words_presence
+class CollectionWordPresence:
+	# TODO: rewrite with matrix operations on dataframe, may be the same with entropies
+	def __init__(self, collection, tokenizer):
+		self._collection = collection
+		extractor = bc.FrequenciesExtractor(tokenizer)
+		self._frequencies = bc.HierarchialFeatures.from_book_collection(
+			self._collection, extractor)
 
-	def xxx(self):
+		self._from_total = {}
+		self._from_author = {}
+
+		for word,freq in self._frequencies.total().items():
+			self._from_total[word] = freq
+			self._from_author[word] = {}
+			
+			word_totals = 0
+			for author in self._collection.authors():
+				by_author = self._frequencies.by_author(author)
+				if word in by_author:
+					self._from_author[word][author] = by_author[word] * by_author.total_counts()
+					word_totals += by_author[word] * by_author.total_counts()
+			for author in self._from_author[word].keys():
+				self._from_author[word][author] /= word_totals
+
+	def words(self):
 		pass
+	def from_total(self, word):
+		return self._from_total[word]
+	def from_author(self, word):
+		return self._from_author[word]
 
-	def from_book_collection(cls, collection, tokenizer):
-		vocabularies_by_book = {}
-		vocabularies_by_author = defaultdict(set)
-		words_presence_by_book = Counter()
-		words_presence_by_author = Counter()
+	def as_dataframe(self):
+		frames = []
+		for author in self._collection.authors():
+			indices = []
+			values = []
+			for word,contribs in self._from_author.items():
+				if author in contribs:
+					indices.append(word)
+					values.append(contribs[author])
 
-		for book in collection.books():
-			vocabularies_by_book[book] = set(tokenizer.tokens_from(book.contents()))
-			vocabularies_by_author[book.author()].update(vocabularies_by_book[book])
-			for word in vocabularies_by_book[book]:
-				words_presence_by_book[word] += 1
-		for word in vocabularies_by_author.keys():
-			for word in vocabularies_by_book[book]:
-				words_presence[word] += 1
+			df = pandas.DataFrame(values, index = indices, columns=[author])
+			frames.append(df)
+		return pandas.concat(frames)
 
-		return cls(collection, tokenizer, vocabularies_by_book, vocabularies_by_author, words_presence)
+class CollectionVocabularyAnalyzer:
+	# TODO: rewrite with matrix operations on dataframe
+	def __init__(self, collection, tokenizer):
+		self._collection = collection
+		extractor = bc.VocabularyExtractor(tokenizer)
+		self._vocabulary = bc.HierarchialFeatures.from_book_collection(
+			self._collection, extractor)
+
+		self._from_book = Counter()
+		self._from_author = Counter()
+
+		for word in self._vocabulary.total().keys():
+			for author in self._collection.authors():
+				if word in self._vocabulary.by_author(author):
+					self._from_author[word] += 1
+
+			for book in self._collection.books():
+				if word in self._vocabulary.by_book(book):
+					self._from_book[word] += 1
+
+	def words_by_author_counts(self):
+		counts = []
+		for i in range(len(self._collection.authors())):
+			current = []
+			for k,v in self._from_author.items():
+				if v >= (i+1):
+					current.append(k)
+			counts.append(current)
+		return counts
+
+	def words_by_book_counts(self):
+		counts = []
+		for i in range(len(self._collection.books())):
+			current = []
+			for k,v in self._from_book.items():
+				if v >= (i+1):
+					current.append(k)
+			counts.append(current)
+		return counts
