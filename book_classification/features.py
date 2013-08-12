@@ -6,15 +6,15 @@ class Extractor:
 	def extract_from(self, book):
 		raise NotImplementedError()
 
-class FixedExtractor(Extractor):
+class TruncatedExtractor(Extractor):
 	def __init__(self, extractor, vocabulary):
 		self._extractor = extractor
 		self._vocabulary = vocabulary
 	
 	def extract_from(self, book):
-		return FixedFeatures(self._extractor.extract_from(book), self._vocabulary)
-	#def vocabulary(self):
-	#	return self._vocabulary.total().keys()
+		return TruncatedFeatures(self._extractor.extract_from(book), self._vocabulary)
+	def vocabulary(self):
+		return self._vocabulary
 
 	@classmethod
 	def from_collection(cls, extractor, collection):
@@ -44,14 +44,26 @@ class Features:
 	def __contains__(self, key):
 		return key in self.keys()
 
-class FixedFeatures(Features):
+class TruncatedFeatures(Features):
 	def __init__(self, features, vocabulary):
 		# IDEA: let vocabulary decide, instead of passing the complete set
 		# it only needs to be able to tell its own length, but not which elements
 		self._features = features
 		self._vocabulary = vocabulary
+	
+	def combine(self, other):
 		raise NotImplementedError()
-	# TODO ...
+
+	def __len__(self):
+		return len(self.keys())
+	def __getitem__(self, key):
+		if key not in self._vocabulary:
+			raise Exception("blah")
+		return self._features[key]
+	def total_counts(self):
+		return self._features.total_counts()
+	def keys(self):
+		return set(self._features.keys()).intersection(set(self._vocabulary))
 
 class VocabulariesExtractor(Extractor):
 	def __init__(self, tokenizer):

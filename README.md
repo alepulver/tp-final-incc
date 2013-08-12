@@ -7,9 +7,10 @@ Learn and predict book authors from words using supervised learning
 
 ## Must
 
-- finish FixedExtractor and write tests
-- tests for classification.py
+- some tests for classification.py
 - experiment results, aggregation and CV
+- update notebooks
+- try interesting visualizations
 
 ## Ideas
 
@@ -18,3 +19,4 @@ Learn and predict book authors from words using supervised learning
 - use dict mixin or similar in features.py to avoid duplicated code
 - weighting windows
 - stemming tokenizer
+- conider collapsing undesired features together (in tokenizer) rather than truncating them at the end and losing properties

@@ -1,5 +1,6 @@
 import book_classification as bc
 import shelve
+import random
 from nose.tools import *
 
 my_book_one = bc.Book.from_str("Title: Book One\nAuthor: A\nanimal plant animal plant")
@@ -9,6 +10,9 @@ my_book_four = bc.Book.from_str("Title: Book Three\nAuthor: B\ntower oil")
 
 my_shelve = shelve.open("storage_new.db")
 aBookCollection = my_shelve['aBookCollection']
+
+# avoid different results in random.sample
+random.seed(123)
 
 def test_CanClassifyAPairOfBooks():
 	training_set = bc.BookCollection({my_book_one, my_book_two})

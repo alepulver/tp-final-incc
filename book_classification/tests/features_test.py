@@ -141,11 +141,11 @@ def test_CanCombinePairwiseAssociation():
 	eq_(assocs.total_counts(), 30)
 	eq_(dict(assocs.items()), expected)
 
-def test_FixedExtractorBehavesTheSameWithFullVocabulary():
+def test_TruncatedExtractorBehavesTheSameWithFullVocabulary():
 	tokens = ["one", "two", "one", "three", "three", "three", "three"]
 	tokenizer = bc.DummyTokenizer()
-	vocabulary = bc.VocabulariesExtractor(tokenizer).extract_from(tokens)
-	extractor = bc.FixedExtractor(bc.VocabulariesExtractor(tokenizer), vocabulary)
+	vocabulary = bc.VocabulariesExtractor(tokenizer).extract_from(tokens).keys()
+	extractor = bc.TruncatedExtractor(bc.VocabulariesExtractor(tokenizer), vocabulary)
 	
 	vocabularies = extractor.extract_from(tokens)
 	expected = {'three': 1, 'one': 1, 'two': 1}
@@ -154,15 +154,15 @@ def test_FixedExtractorBehavesTheSameWithFullVocabulary():
 	eq_(vocabularies.total_counts(), 3)
 	eq_(dict(vocabularies.items()), expected)
 
-def test_FixedExtractorOmitsFeatures():
+def test_TruncatedExtractorOmitsFeatures():
 	tokens = ["one", "two", "one", "three", "three", "three", "three"]
 	tokenizer = bc.DummyTokenizer()
 	vocabulary = ["one", "three"]
-	extractor = bc.FixedExtractor(bc.VocabulariesExtractor(tokenizer), vocabulary)
+	extractor = bc.TruncatedExtractor(bc.VocabulariesExtractor(tokenizer), vocabulary)
 	
 	vocabularies = extractor.extract_from(tokens)
 	expected = {'three': 1, 'one': 1}
 	
 	eq_(len(vocabularies), 2)
-	eq_(vocabularies.total_counts(), 2)
+	eq_(vocabularies.total_counts(), 3)
 	eq_(dict(vocabularies.items()), expected)
