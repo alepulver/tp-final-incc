@@ -16,7 +16,7 @@ Learn and predict book authors from words using supervised learning
 
 - distribution vs contributions, from the same word/author matrix
 - comparer for two feature sets, like entropies with different windows
-- use dict mixin or similar in features.py to avoid duplicated code
 - weighting windows
 - stemming tokenizer
-- conider collapsing undesired features together (in tokenizer) rather than truncating them at the end and losing properties
+- add "collapsing" tokenizer, which converts unknown entries into the same fake token, instead of ignoring it like FilteringTokenizer
+- look at exported items in namespaces, remove some and partition if needed

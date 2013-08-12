@@ -2,7 +2,7 @@ import book_classification as bc
 from nose.tools import *
 
 def test_CanExtractVocabularies():
-	tokenizer = bc.DummyTokenizer()
+	tokenizer = bc.DummySequenceTokenizer()
 	extractor = bc.VocabulariesExtractor(tokenizer)
 	
 	vocabularies = extractor.extract_from(
@@ -14,7 +14,7 @@ def test_CanExtractVocabularies():
 	eq_(dict(vocabularies.items()), expected)
 
 def test_CanExtractFrequencies():
-	tokenizer = bc.DummyTokenizer()
+	tokenizer = bc.DummySequenceTokenizer()
 	extractor = bc.FrequenciesExtractor(tokenizer)
 	
 	frequencies = extractor.extract_from(
@@ -26,7 +26,7 @@ def test_CanExtractFrequencies():
 	eq_(dict(frequencies.items()), expected)
 
 def test_CanExtractSeries():
-	tokenizer = bc.DummyTokenizer()
+	tokenizer = bc.DummySequenceTokenizer()
 	extractor = bc.SeriesExtractor(tokenizer)
 	
 	series = extractor.extract_from(
@@ -38,7 +38,7 @@ def test_CanExtractSeries():
 	eq_(dict(series.items()), expected)
 
 def test_CanExtractEntropies():
-	tokenizer = bc.DummyTokenizer()
+	tokenizer = bc.DummySequenceTokenizer()
 	grouper = bc.DummyGrouper()
 	extractor = bc.EntropiesExtractor(tokenizer, grouper)
 	
@@ -52,7 +52,7 @@ def test_CanExtractEntropies():
 	eq_(dict(entropies.items()), expected)
 
 def test_CanExtractPairwiseAssociation():
-	tokenizer = bc.DummyTokenizer()
+	tokenizer = bc.DummySequenceTokenizer()
 	weighting_window = bc.WeightingWindow.uniform(5)
 	extractor = bc.PairwiseAssociationExtractor(tokenizer, weighting_window)
 	
@@ -69,7 +69,7 @@ def test_CanExtractPairwiseAssociation():
 	eq_(dict(assocs.items()), expected)
 
 def test_CanCombineVocabularies():
-	tokenizer = bc.DummyTokenizer()
+	tokenizer = bc.DummySequenceTokenizer()
 	extractor = bc.VocabulariesExtractor(tokenizer)
 	
 	vocabulariesOne = extractor.extract_from(["one", "two", "three", "three"])
@@ -82,7 +82,7 @@ def test_CanCombineVocabularies():
 	eq_(dict(result.items()), expected)
 
 def test_CanCombineFrequencies():
-	tokenizer = bc.DummyTokenizer()
+	tokenizer = bc.DummySequenceTokenizer()
 	extractor = bc.FrequenciesExtractor(tokenizer)
 	
 	frequenciesOne = extractor.extract_from(["one", "two", "three", "three"])
@@ -95,7 +95,7 @@ def test_CanCombineFrequencies():
 	eq_(dict(result.items()), expected)
 
 def test_CanCombineEntropies():
-	tokenizer = bc.DummyTokenizer()
+	tokenizer = bc.DummySequenceTokenizer()
 	grouper = bc.DummyGrouper()
 	extractor = bc.EntropiesExtractor(tokenizer, grouper)
 	
@@ -110,7 +110,7 @@ def test_CanCombineEntropies():
 	eq_(dict(result.items()), expected)
 
 def test_CanCombineSeries():
-	tokenizer = bc.DummyTokenizer()
+	tokenizer = bc.DummySequenceTokenizer()
 	extractor = bc.SeriesExtractor(tokenizer)
 
 	seriesOne = extractor.extract_from(["one", "two", "one"])
@@ -123,7 +123,7 @@ def test_CanCombineSeries():
 	eq_(dict(result.items()), expected)
 
 def test_CanCombinePairwiseAssociation():
-	tokenizer = bc.DummyTokenizer()
+	tokenizer = bc.DummySequenceTokenizer()
 	weighting_window = bc.WeightingWindow.uniform(5)
 	extractor = bc.PairwiseAssociationExtractor(tokenizer, weighting_window)
 
@@ -141,28 +141,18 @@ def test_CanCombinePairwiseAssociation():
 	eq_(assocs.total_counts(), 30)
 	eq_(dict(assocs.items()), expected)
 
-def test_TruncatedExtractorBehavesTheSameWithFullVocabulary():
-	tokens = ["one", "two", "one", "three", "three", "three", "three"]
-	tokenizer = bc.DummyTokenizer()
-	vocabulary = bc.VocabulariesExtractor(tokenizer).extract_from(tokens).keys()
-	extractor = bc.TruncatedExtractor(bc.VocabulariesExtractor(tokenizer), vocabulary)
+def test_ExtractorCalculatesVocabularyForBook():
+	book = bc.DummyBook(["one", "two", "one", "three", "three", "three", "three"])
+	vocabulary = ["one", "three", "two"]
+	tokenizer = bc.DummyBookTokenizer()
+	extractor = bc.VocabulariesExtractor(tokenizer)
 	
-	vocabularies = extractor.extract_from(tokens)
-	expected = {'three': 1, 'one': 1, 'two': 1}
-	
-	eq_(len(vocabularies), 3)
-	eq_(vocabularies.total_counts(), 3)
-	eq_(dict(vocabularies.items()), expected)
+	eq_(extractor.vocabulary_for_book(book), set(vocabulary))
 
-def test_TruncatedExtractorOmitsFeatures():
-	tokens = ["one", "two", "one", "three", "three", "three", "three"]
-	tokenizer = bc.DummyTokenizer()
+def test_ExtractorReturnsVocabularyForBook():
+	book = bc.DummyBook(["one", "two", "one", "three", "three", "three", "three"])
 	vocabulary = ["one", "three"]
-	extractor = bc.TruncatedExtractor(bc.VocabulariesExtractor(tokenizer), vocabulary)
+	tokenizer = bc.FilteringTokenizer(bc.DummyBookTokenizer(), vocabulary)
+	extractor = bc.VocabulariesExtractor(tokenizer)
 	
-	vocabularies = extractor.extract_from(tokens)
-	expected = {'three': 1, 'one': 1}
-	
-	eq_(len(vocabularies), 2)
-	eq_(vocabularies.total_counts(), 3)
-	eq_(dict(vocabularies.items()), expected)
+	eq_(extractor.vocabulary_for_book(book), set(vocabulary))

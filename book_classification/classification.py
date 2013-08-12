@@ -6,14 +6,14 @@ from scipy import sparse
 # TODO: aggregated feature extractors
 
 class FeaturesToMatrixEncoder:
-	def __init__(self, fixed_extractor, authors):
-		self._extractor = fixed_extractor
-		self._features_indexer = bc.NumericIndexer(self._extractor.vocabulary())
+	def __init__(self, extractor, vocabulary, authors):
+		self._extractor = extractor
+		self._features_indexer = bc.NumericIndexer(vocabulary)
 		self._authors_indexer = bc.NumericIndexer(authors)
 
 	def encode_collection(self, collection):
 		matrix = self.encode_features(collection)
-		authors = self.encode_authors(collection.authors())
+		authors = self.encode_authors(collection)
 		return matrix, authors
 
 	def encode_features(self, collection):
@@ -40,8 +40,9 @@ class FeaturesToMatrixEncoder:
 		return [self._authors_indexer.decode(item) for item in sequence]
 
 class ClassificationModel:
-	def __init__(self, training, fixed_extractor, transformer, model):
-		self._encoder = FeaturesToMatrixEncoder(fixed_extractor, training.authors())
+	def __init__(self, training, extractor, transformer, model):
+		vocabulary = extractor.vocabulary_for_collection(training)
+		self._encoder = FeaturesToMatrixEncoder(extractor, vocabulary, training.authors())
 		self._transformer = transformer
 		self._model = model
 
@@ -51,7 +52,6 @@ class ClassificationModel:
 		self._model.fit(processed_matrix, authors)
 
 	def classify(self, collection):
-		#book_indexer = bc.NumericIndexer.from_objs(collection.books())
 		matrix, authors = self._encoder.encode_collection(collection)
 		processed_matrix = self._transformer.transform(matrix)
 		result = self._model.predict(processed_matrix)
@@ -61,6 +61,8 @@ class ClassificationModel:
 		return self._matrix_builder.decode_authors(result)
 
 class ClassificationResults:
+	def __init__(self, pairs):
+		pass
 	def confusion_matrix(self):
 		pass
 	def sklearn_metric(self, metric):

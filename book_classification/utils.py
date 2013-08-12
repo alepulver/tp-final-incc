@@ -4,7 +4,11 @@ class Tokenizer:
 	def tokens_from(self, book):
 		raise NotImplementedError()
 
-class DummyTokenizer(Tokenizer):
+class DummyBookTokenizer(Tokenizer):
+	def tokens_from(self, book):
+		return iter(book.contents())
+
+class DummySequenceTokenizer(Tokenizer):
 	def tokens_from(self, sequence):
 		return iter(sequence)
 

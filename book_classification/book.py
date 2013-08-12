@@ -2,6 +2,12 @@ import re
 import zipfile
 import gzip
 
+class DummyBook:
+    def __init__(self, text):
+        self._text = text
+    def contents(self):
+        return self._text
+
 class Book:
     def __init__(self, author, title, contents, source=None):
         self._author = author

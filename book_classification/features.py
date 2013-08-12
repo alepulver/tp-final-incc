@@ -5,20 +5,21 @@ import book_classification as bc
 class Extractor:
 	def extract_from(self, book):
 		raise NotImplementedError()
-
-class TruncatedExtractor(Extractor):
-	def __init__(self, extractor, vocabulary):
-		self._extractor = extractor
-		self._vocabulary = vocabulary
-	
-	def extract_from(self, book):
-		return TruncatedFeatures(self._extractor.extract_from(book), self._vocabulary)
-	def vocabulary(self):
-		return self._vocabulary
-
-	@classmethod
-	def from_collection(cls, extractor, collection):
-		raise NotImplementedError()
+	#def vocabulary_for(self, collection):
+	#	raise NotImplementedError()
+	def vocabulary_for_book(self, book):
+		if self._tokenizer.__class__ == bc.FilteringTokenizer:
+			return self._tokenizer._vocabulary
+		else:
+			vocabulary = VocabulariesExtractor(self._tokenizer).extract_from(book)
+			return vocabulary.keys()
+	def vocabulary_for_collection(self, collection):
+		if self._tokenizer.__class__ == bc.FilteringTokenizer:
+			return self._tokenizer._vocabulary
+		else:
+			vocabularies = bc.HierarchialFeatures.from_book_collection(
+				collection, VocabulariesExtractor(self._tokenizer))
+			return vocabularies.total().keys()
 
 class Features:
 	@classmethod
@@ -28,42 +29,26 @@ class Features:
 	def combine(self, other):
 		raise NotImplementedError()
 
-	# TODO: use dict "mixin" or ABC to avoid boilerplate
-	def __len__(self):
-		raise NotImplementedError()
 	def __getitem__(self, key):
 		raise NotImplementedError()
 	def total_counts(self):
 		raise NotImplementedError()
+
+class MixinFeaturesDict:
+	def __getitem__(self, key):
+		return self._entries[key]
+	def total_counts(self):
+		return self._total
+	def __len__(self):
+		return len(self._entries)
 	def keys(self):
-		raise NotImplementedError()
+		return self._entries.keys()
 	def values(self):
 		return (self[key] for key in self.keys())
 	def items(self):
 		return ((key, self[key]) for key in self.keys())
 	def __contains__(self, key):
 		return key in self.keys()
-
-class TruncatedFeatures(Features):
-	def __init__(self, features, vocabulary):
-		# IDEA: let vocabulary decide, instead of passing the complete set
-		# it only needs to be able to tell its own length, but not which elements
-		self._features = features
-		self._vocabulary = vocabulary
-	
-	def combine(self, other):
-		raise NotImplementedError()
-
-	def __len__(self):
-		return len(self.keys())
-	def __getitem__(self, key):
-		if key not in self._vocabulary:
-			raise Exception("blah")
-		return self._features[key]
-	def total_counts(self):
-		return self._features.total_counts()
-	def keys(self):
-		return set(self._features.keys()).intersection(set(self._vocabulary))
 
 class VocabulariesExtractor(Extractor):
 	def __init__(self, tokenizer):
@@ -75,24 +60,16 @@ class VocabulariesExtractor(Extractor):
 			data[token] = True
 		return TokenVocabularies(data)
 
-class TokenVocabularies(Features):
+class TokenVocabularies(MixinFeaturesDict, Features):
 	def __init__(self, entries):
 		self._entries = entries
+		self._total = len(self._entries)
 
 	def combine(self, other):
 		data = self._entries.copy()
 		for k in other._entries.keys():
 			data[k] = True
 		return self.__class__(data)
-
-	def __len__(self):
-		return len(self._entries)
-	def __getitem__(self, key):
-		return self._entries[key]
-	def total_counts(self):
-		return len(self)
-	def keys(self):
-		return self._entries.keys()
 
 class FrequenciesExtractor(Extractor):
 	def __init__(self, tokenizer):
@@ -108,7 +85,7 @@ class FrequenciesExtractor(Extractor):
 			entries[token] /= total
 		return TokenFrequencies(entries, total)
 
-class TokenFrequencies(Features):
+class TokenFrequencies(MixinFeaturesDict, Features):
 	def __init__(self, entries, total):
 		self._entries = entries
 		self._total = total
@@ -124,15 +101,6 @@ class TokenFrequencies(Features):
 		
 		return self.__class__(data, total)
 
-	def __len__(self):
-		return len(self._entries)
-	def __getitem__(self, key):
-		return self._entries[key]
-	def total_counts(self):
-		return self._total
-	def keys(self):
-		return self._entries.keys()
-
 class SeriesExtractor(Extractor):
 	def __init__(self, tokenizer):
 		self._tokenizer = tokenizer
@@ -145,7 +113,7 @@ class SeriesExtractor(Extractor):
 			total_tokens += 1
 		return TokenSeries(series, total_tokens)
 
-class TokenSeries(Features):
+class TokenSeries(MixinFeaturesDict, Features):
 	def __init__(self, entries, total):
 		self._entries = entries
 		self._total = total
@@ -159,16 +127,7 @@ class TokenSeries(Features):
 		for k,v in other._entries.items():
 			data[k].extend(x + self._total for x in v)
 		
-		return self.__class__(data, total)	
-
-	def __len__(self):
-		return len(self._entries)
-	def __getitem__(self, key):
-		return self._entries[key]
-	def total_counts(self):
-		return self._total
-	def keys(self):
-		return self._entries.keys()
+		return self.__class__(data, total)
 
 class EntropiesExtractor(Extractor):
 	def __init__(self, tokenizer, grouper):
@@ -177,7 +136,7 @@ class EntropiesExtractor(Extractor):
 
 	def extract_from(self, book):
 		parts = self._grouper.parts_from(self._tokenizer.tokens_from(book))
-		frequencies_extractor = FrequenciesExtractor(bc.DummyTokenizer())
+		frequencies_extractor = FrequenciesExtractor(bc.DummySequenceTokenizer())
 		frequencies_list = (frequencies_extractor.extract_from(p) for p in parts)
 
 		sum_freqs = Counter()
@@ -192,11 +151,14 @@ class EntropiesExtractor(Extractor):
 
 		return TokenEntropies(sum_freqs, sum_freqs_log, total)
 
-class TokenEntropies(Features):
+class TokenEntropies(MixinFeaturesDict, Features):
 	def __init__(self, sum_freqs, sum_freqs_log, total):
 		self._sum_freqs = sum_freqs
 		self._sum_freqs_log = sum_freqs_log
 		self._total = total
+
+		# for compatibility with MixinFeaturesDict methods
+		self._entries = self._sum_freqs
 
 	def combine(self, other):
 		total = self._total + other._total
@@ -213,16 +175,10 @@ class TokenEntropies(Features):
 		
 		return self.__class__(sum_freqs, sum_freqs_log, total)
 
-	def __len__(self):
-		return len(self._sum_freqs)
 	def __getitem__(self, key):
 		# FIXME: remove word or return 1 instead of adjusting; add test
 		coeff = -1 / (math.log(self._total) * self._sum_freqs[key] + 10**-300)
 		return coeff * (self._sum_freqs_log[key] - self._sum_freqs[key]*math.log(self._sum_freqs[key]))
-	def total_counts(self):
-		return self._total
-	def keys(self):
-		return self._sum_freqs.keys()
 
 # TODO: only restrict tokenizer, but return all combinations with zero value as features and put them in matrix
 class PairwiseAssociationExtractor(Extractor):
@@ -244,7 +200,7 @@ class PairwiseAssociationExtractor(Extractor):
 
 		return TokenPairwiseAssociation(entries, total)
 
-class TokenPairwiseAssociation(Features):
+class TokenPairwiseAssociation(MixinFeaturesDict, Features):
 	def __init__(self, entries, total):
 		self._entries = entries
 		self._total = total
@@ -263,12 +219,3 @@ class TokenPairwiseAssociation(Features):
 			total += 1
 
 		return TokenPairwiseAssociation(entries, total)
-
-	def __len__(self):
-		return len(self._weights)
-	def __getitem__(self, key):
-		return self._entries[key]
-	def total_counts(self):
-		return self._total
-	def keys(self):
-		return self._entries.keys()
