@@ -5,21 +5,33 @@ import book_classification as bc
 class Extractor:
 	def extract_from(self, book):
 		raise NotImplementedError()
-	#def vocabulary_for(self, collection):
-	#	raise NotImplementedError()
 	def vocabulary_for_book(self, book):
-		if self._tokenizer.__class__ == bc.FilteringTokenizer:
-			return self._tokenizer._vocabulary
-		else:
-			vocabulary = VocabulariesExtractor(self._tokenizer).extract_from(book)
-			return vocabulary.keys()
+		raise NotImplementedError()
 	def vocabulary_for_collection(self, collection):
-		if self._tokenizer.__class__ == bc.FilteringTokenizer:
-			return self._tokenizer._vocabulary
-		else:
-			vocabularies = bc.HierarchialFeatures.from_book_collection(
-				collection, VocabulariesExtractor(self._tokenizer))
-			return vocabularies.total().keys()
+		raise NotImplementedError()
+
+class TokenizerVocabularyBuilder:
+	def __init__(self, book):
+		self._book = book
+	def case_dynamic_vocabulary(self, tokenizer):
+		vocabulary = VocabulariesExtractor(tokenizer).extract_from(self._book)
+		return vocabulary.keys()
+	def case_fixed_vocabulary(self, tokenizer):
+		return tokenizer.vocabulary()
+
+class MixinExtractor:
+	def tokenizer(self):
+		return self._tokenizer
+
+	def vocabulary_for_book(self, book):
+		builder = TokenizerVocabularyBuilder(book)
+		return self._tokenizer.if_vocabulary(builder)
+
+	def vocabulary_for_collection(self, collection):
+		result = set()
+		for book in collection.books():
+			result.update(self.vocabulary_for_book(book))
+		return result
 
 class Features:
 	@classmethod
@@ -50,7 +62,7 @@ class MixinFeaturesDict:
 	def __contains__(self, key):
 		return key in self.keys()
 
-class VocabulariesExtractor(Extractor):
+class VocabulariesExtractor(MixinExtractor, Extractor):
 	def __init__(self, tokenizer):
 		self._tokenizer = tokenizer
 
@@ -71,7 +83,7 @@ class TokenVocabularies(MixinFeaturesDict, Features):
 			data[k] = True
 		return self.__class__(data)
 
-class FrequenciesExtractor(Extractor):
+class FrequenciesExtractor(MixinExtractor, Extractor):
 	def __init__(self, tokenizer):
 		self._tokenizer = tokenizer
 
@@ -101,7 +113,7 @@ class TokenFrequencies(MixinFeaturesDict, Features):
 		
 		return self.__class__(data, total)
 
-class SeriesExtractor(Extractor):
+class SeriesExtractor(MixinExtractor, Extractor):
 	def __init__(self, tokenizer):
 		self._tokenizer = tokenizer
 
@@ -129,7 +141,7 @@ class TokenSeries(MixinFeaturesDict, Features):
 		
 		return self.__class__(data, total)
 
-class EntropiesExtractor(Extractor):
+class EntropiesExtractor(MixinExtractor, Extractor):
 	def __init__(self, tokenizer, grouper):
 		self._tokenizer = tokenizer
 		self._grouper = grouper

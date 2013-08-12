@@ -1,40 +1,8 @@
-import nltk
-
-class Tokenizer:
-	def tokens_from(self, book):
-		raise NotImplementedError()
-
-class DummyBookTokenizer(Tokenizer):
-	def tokens_from(self, book):
-		return iter(book.contents())
-
-class DummySequenceTokenizer(Tokenizer):
-	def tokens_from(self, sequence):
-		return iter(sequence)
-
-class BasicTokenizer(Tokenizer):
-	def tokens_from(self, book):
-		def is_word(x):
-			return x.isalpha() and len(x) > 2
-		tokens = nltk.wordpunct_tokenize(book.contents().lower())
-
-		return filter(is_word, tokens)
-
-# stores each word that it outputs and can answer it
-class RememberingTokenizer(Tokenizer):
-	pass
-# merging tokenizer, stores how many words were collapsed into one and how
-class StemmingTokenizer(Tokenizer):
-	pass
-# XXX: alternatively, provide event listener to every tokenizer so they can store things
-
-class FilteringTokenizer(Tokenizer):
-	def __init__(self, tokenizer, vocabulary):
-		self._tokenizer = tokenizer
-		self._vocabulary = set(vocabulary)
-
-	def tokens_from(self, book):
-		return filter(lambda x: x in self._vocabulary, self._tokenizer.tokens_from(book))
+class DummyTransformer:
+	def fit(self, data):
+		pass
+	def transform(self, data):
+		return data
 
 class Grouper:
 	def parts_from(self, sequence):

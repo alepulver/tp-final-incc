@@ -5,11 +5,32 @@ from scipy import sparse
 
 # TODO: aggregated feature extractors
 
+class IndexerIteratorBuilder:
+	def __init__(self, numeric_indexer):
+		self._numeric_indexer = numeric_indexer
+	
+	def case_dynamic_vocabulary(self, tokenizer):
+		def func(items):
+			for k,v in items:
+				if self._numeric_indexer.can_encode(k):
+					yield k,v
+		return func
+	
+	def case_fixed_vocabulary(self, tokenizer):
+		def func(items):
+			for k,v in items:
+				if not self._numeric_indexer.can_encode(k):
+					raise Exception('element "{}" is not in indexer vocabulary'.format(k))
+				yield k,v
+		return func
+
 class FeaturesToMatrixEncoder:
-	def __init__(self, extractor, vocabulary, authors):
+	def __init__(self, extractor, output_vocabulary, authors):
 		self._extractor = extractor
-		self._features_indexer = bc.NumericIndexer(vocabulary)
+		self._features_indexer = bc.NumericIndexer(output_vocabulary)
 		self._authors_indexer = bc.NumericIndexer(authors)
+		self._indexer_iterator = self._extractor.tokenizer().if_vocabulary(
+			IndexerIteratorBuilder(self._features_indexer))
 
 	def encode_collection(self, collection):
 		matrix = self.encode_features(collection)
@@ -24,15 +45,12 @@ class FeaturesToMatrixEncoder:
 		matrix = sparse.dok_matrix((len(collection), len(self._features_indexer)))
 		for i,book in enumerate(collection.books()):
 			features = collection_features[book]
-			for k,v in features.items():
+			for k,v in self._indexer_iterator(features.items()):
 				j = self._features_indexer.encode(k)
 				matrix[i, j] = v
 
 		#return matrix.tocsc()
 		return matrix
-
-	def decode_features(self, collection):
-		raise NotImplementedError()
 
 	def encode_authors(self, collection):
 		return [self._authors_indexer.encode(book.author()) for book in collection.books()]
@@ -58,7 +76,7 @@ class ClassificationModel:
 
 		# decode output to book collection with possibly wrong authors?
 		# or return classification results object
-		return self._matrix_builder.decode_authors(result)
+		return self._encoder.decode_authors(result)
 
 class ClassificationResults:
 	def __init__(self, pairs):

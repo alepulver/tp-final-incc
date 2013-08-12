@@ -1,18 +1,6 @@
 import book_classification as bc
 from nose.tools import *
 
-def test_BasicTokenizerShouldProcessASentence():
-	tokenizer = bc.BasicTokenizer()
-	book = bc.DummyBook("This, I think; is a n1c3.sentence...")
-	result = list(tokenizer.tokens_from(book))
-	eq_(result, ["this", "think", "sentence"])
-
-def test_FilteringTokenizerShouldRestrictWords():
-	tokenizer = bc.FilteringTokenizer(bc.BasicTokenizer(), ['two', 'three'])
-	book = bc.DummyBook("one two one two three one two four")
-	result = list(tokenizer.tokens_from(book))
-	eq_(result, ["two", "two", "three", "two"])
-
 def test_FixedGrouperCanGroupMultiplesOfSize():
 	grouper = bc.FixedGrouper(3)
 	result = grouper.parts_from('abcdef')
