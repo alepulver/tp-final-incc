@@ -62,8 +62,7 @@ def test_ClassificationModel():
 	extractor = bc.FrequenciesExtractor(tokenizer)
 	classification_model = bc.ClassificationModel(trainingCollection, extractor,
 		bc.DummyTransformer(), svm.SVC())
-	eq_(classification_model.classify(testingCollection),
-		[book.author() for book in testingCollection.books()])
+	eq_(classification_model.classify(testingCollection), {book_3: "Myself", book_4: "Someone"})
 
 def test_ClassificationResults():
 	pass

@@ -72,18 +72,22 @@ class ClassificationModel:
 	def classify(self, collection):
 		matrix, authors = self._encoder.encode_collection(collection)
 		processed_matrix = self._transformer.transform(matrix)
-		result = self._model.predict(processed_matrix)
+		predicted_authors_encoded = self._model.predict(processed_matrix)
+		predicted_authors = self._encoder.decode_authors(predicted_authors_encoded)
 
-		# decode output to book collection with possibly wrong authors?
-		# or return classification results object
-		return self._encoder.decode_authors(result)
+		result = {}
+		for book,predicted in zip(collection.books(), predicted_authors):
+			result[book] = predicted
+		return result
 
 class ClassificationResults:
-	def __init__(self, pairs):
-		pass
+	def __init__(self, classification_model, collection, expected, predicted):
+		self._classification_model = classification_model
+		self._collection = collection
+		self._expected = expected
+		self._predicted = predicted
+	# allow all sklearn metrics, with proxy
 	def confusion_matrix(self):
-		pass
-	def sklearn_metric(self, metric):
 		pass
 
 # pass CV method, etc

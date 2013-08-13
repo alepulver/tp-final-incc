@@ -7,7 +7,7 @@ Learn and predict book authors from words using supervised learning
 
 ## Must
 
-- experiment results, aggregation and CV
+- experiment results analysis and CV
 - visualize experiment results, copy sklearn graphs
 - update notebooks
 - try interesting visualizations
@@ -19,3 +19,4 @@ Learn and predict book authors from words using supervised learning
 - weighting windows
 - finish transforming tokenizers (stemmer, lemmatizer, ...) and analysis helper
 - look at exported items in namespaces, remove some and partition if needed
+- try random projections and non-negative matrix factorization, instead of sparse SVD
