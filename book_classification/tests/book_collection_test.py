@@ -24,12 +24,12 @@ def test_NewCollectionShouldSeparateByAuthor():
 
 def test_ShouldFilterByAuthor():
 	aBookCollection = bc.BookCollection.from_books(my_books_all)
-	anotherBookCollection = aBookCollection.exclude_authors_with_less_than(2)
+	anotherBookCollection = aBookCollection.selection().exclude_authors_below(2)
 	eq_(set(anotherBookCollection.authors()), {"A", "B"})
 
 def test_ShouldPartitionByAuthorAndQuantity():
 	aBookCollection = bc.BookCollection.from_books(my_books_all)
-	anotherBookCollectionOne, anotherBookCollectionTwo = aBookCollection.split_at_number_per_author(2)
+	anotherBookCollectionOne, anotherBookCollectionTwo = aBookCollection.selection().split_per_author_number(2)
 
 	eq_(len(anotherBookCollectionOne.books_by("A")), 2)
 	eq_(len(anotherBookCollectionOne.books_by("B")), 2)

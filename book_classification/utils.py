@@ -1,3 +1,13 @@
+import random
+
+class RandomContext:
+	def __init__(self, seed):
+		self._seed = seed
+	def __enter__(self):
+		self._oldstate = random.getstate()
+	def __exit__(self):
+		random.setstate(self._oldstate)
+
 class DummyTransformer:
 	def fit(self, data):
 		pass

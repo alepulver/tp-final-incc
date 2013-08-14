@@ -3,8 +3,6 @@ from sklearn.decomposition import TruncatedSVD
 import book_classification as bc
 from scipy import sparse
 
-# TODO: aggregated feature extractors
-
 class IndexerIteratorBuilder:
 	def __init__(self, numeric_indexer):
 		self._numeric_indexer = numeric_indexer
@@ -24,6 +22,7 @@ class IndexerIteratorBuilder:
 				yield k,v
 		return func
 
+# TODO: separate encoder from extractor, allow each feature to produce a matrix row (list of pairs) and concatenate in encoder
 class FeaturesToMatrixEncoder:
 	def __init__(self, extractor, output_vocabulary, authors):
 		self._extractor = extractor
@@ -57,6 +56,11 @@ class FeaturesToMatrixEncoder:
 	def decode_authors(self, sequence):
 		return [self._authors_indexer.decode(item) for item in sequence]
 
+	@classmethod
+	def from_collection_and_extractor(cls, collection, extractor):
+		vocabulary = extractor.vocabulary_for_collection(collection)
+		return self.__class__(extractor, vocabulary, training.authors())
+
 class ClassificationModel:
 	def __init__(self, training, extractor, transformer, model):
 		vocabulary = extractor.vocabulary_for_collection(training)
@@ -79,6 +83,24 @@ class ClassificationModel:
 		for book,predicted in zip(collection.books(), predicted_authors):
 			result[book] = predicted
 		return result
+
+# TODO: should be an adapter to an existing equivalent model class
+class StatefulClassificationModel:
+	def __init__(self, extractor, transformer, model):
+		self._extractor = extractor
+		self._transformer = transformer
+		self._model = model
+
+	def fit(self, books_list):
+		collection = bc.BookCollection.from_books(books_list)
+		# FIXME: copy transformer and model before passing?
+		self._classification_model = ClassificationModel(collection, self._extractor, self._transformer, self._model)
+
+	def predict(self, books_list):
+		collection = bc.BookCollection.from_books(books_list)
+		predicted_authors = self._classification_model.classify(collection)
+
+		return [predicted_authors[book] for book in books_list]
 
 class ClassificationResults:
 	def __init__(self, classification_model, collection, expected, predicted):
