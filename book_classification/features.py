@@ -34,6 +34,9 @@ class MixinExtractor:
 		return result
 
 class Features:
+	def extractor(self):
+		raise NotImplementedError()
+	
 	@classmethod
 	def zero(cls):
 		# TODO: implement neutral element for combination
@@ -47,6 +50,8 @@ class Features:
 		raise NotImplementedError()
 
 class MixinFeaturesDict:
+	def extractor(self):
+		return self._extractor
 	def __getitem__(self, key):
 		return self._entries[key]
 	def total_counts(self):
@@ -70,18 +75,20 @@ class VocabulariesExtractor(MixinExtractor, Extractor):
 		data = {}
 		for token in self._tokenizer.tokens_from(book):
 			data[token] = True
-		return TokenVocabularies(data)
+		return TokenVocabularies(self, data)
 
 class TokenVocabularies(MixinFeaturesDict, Features):
-	def __init__(self, entries):
+	def __init__(self, extractor, entries):
+		self._extractor = extractor
 		self._entries = entries
 		self._total = len(self._entries)
 
 	def combine(self, other):
+		# TODO: check for extractor compatibility
 		data = self._entries.copy()
 		for k in other._entries.keys():
 			data[k] = True
-		return self.__class__(data)
+		return self.__class__(self, data)
 
 class FrequenciesExtractor(MixinExtractor, Extractor):
 	def __init__(self, tokenizer):
@@ -95,14 +102,16 @@ class FrequenciesExtractor(MixinExtractor, Extractor):
 			total += 1
 		for token in entries.keys():
 			entries[token] /= total
-		return TokenFrequencies(entries, total)
+		return TokenFrequencies(self, entries, total)
 
 class TokenFrequencies(MixinFeaturesDict, Features):
-	def __init__(self, entries, total):
+	def __init__(self, extractor, entries, total):
+		self._extractor = extractor
 		self._entries = entries
 		self._total = total
 
 	def combine(self, other):
+		# TODO: check for extractor compatibility
 		data = Counter()
 		total = self._total + other._total
 
@@ -111,7 +120,7 @@ class TokenFrequencies(MixinFeaturesDict, Features):
 		for k,v in other._entries.items():
 			data[k] += v * other._total/total
 		
-		return self.__class__(data, total)
+		return self.__class__(self, data, total)
 
 class SeriesExtractor(MixinExtractor, Extractor):
 	def __init__(self, tokenizer):
@@ -123,14 +132,16 @@ class SeriesExtractor(MixinExtractor, Extractor):
 		for index,token in enumerate(self._tokenizer.tokens_from(book)):
 			series[token].append(index)
 			total_tokens += 1
-		return TokenSeries(series, total_tokens)
+		return TokenSeries(self, series, total_tokens)
 
 class TokenSeries(MixinFeaturesDict, Features):
-	def __init__(self, entries, total):
+	def __init__(self, extractor, entries, total):
+		self._extractor = extractor
 		self._entries = entries
 		self._total = total
 
 	def combine(self, other):
+		# TODO: check for extractor compatibility
 		data = defaultdict(list)
 		total = self._total + other._total
 		
@@ -139,7 +150,7 @@ class TokenSeries(MixinFeaturesDict, Features):
 		for k,v in other._entries.items():
 			data[k].extend(x + self._total for x in v)
 		
-		return self.__class__(data, total)
+		return self.__class__(self, data, total)
 
 class EntropiesExtractor(MixinExtractor, Extractor):
 	def __init__(self, tokenizer, grouper):
@@ -161,10 +172,11 @@ class EntropiesExtractor(MixinExtractor, Extractor):
 				sum_freqs_log[k] += v * math.log(v)
 			total += 1
 
-		return TokenEntropies(sum_freqs, sum_freqs_log, total)
+		return TokenEntropies(self, sum_freqs, sum_freqs_log, total)
 
 class TokenEntropies(MixinFeaturesDict, Features):
-	def __init__(self, sum_freqs, sum_freqs_log, total):
+	def __init__(self, extractor, sum_freqs, sum_freqs_log, total):
+		self._extractor = extractor
 		self._sum_freqs = sum_freqs
 		self._sum_freqs_log = sum_freqs_log
 		self._total = total
@@ -173,6 +185,7 @@ class TokenEntropies(MixinFeaturesDict, Features):
 		self._entries = self._sum_freqs
 
 	def combine(self, other):
+		# TODO: check for extractor compatibility
 		total = self._total + other._total
 		sum_freqs = Counter()
 		sum_freqs_log = Counter()
@@ -210,16 +223,18 @@ class PairwiseAssociationExtractor(Extractor):
 				entries[(center,element)] += weight
 				total += 1
 
-		return TokenPairwiseAssociation(entries, total)
+		return TokenPairwiseAssociation(self, entries, total)
 
 class TokenPairwiseAssociation(MixinFeaturesDict, Features):
-	def __init__(self, entries, total):
+	def __init__(self, extractor, entries, total):
+		self._extractor = extractor
 		self._entries = entries
 		self._total = total
 
 	def combine(self, other):
 		# XXX: is not exact because some information is discarded,
 		# but at least it's associative and commutative
+		# TODO: check for extractor compatibility
 		entries = Counter()
 		total = 0
 
@@ -230,4 +245,4 @@ class TokenPairwiseAssociation(MixinFeaturesDict, Features):
 			entries[k] += v
 			total += 1
 
-		return TokenPairwiseAssociation(entries, total)
+		return TokenPairwiseAssociation(self, entries, total)

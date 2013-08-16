@@ -5,3 +5,4 @@ from .classification import *
 from .tokenizer import *
 from .utils import *
 from .workflow import *
+from .sklearn_compat import *
