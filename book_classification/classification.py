@@ -81,6 +81,7 @@ class CollectionFeaturesMatrixExtractor:
 		collection_features = self._collection_features_extractor.extract_from(collection)
 		return self._collection_features_encoder.encode(collection_features)
 
+# XXX: it's not necessary to encode authors; strings or other objects work just fine
 class ClassificationModel:
 	def __init__(self, extractor, model, output_vocabulary=None):
 		self._extractor = extractor

@@ -1,18 +1,7 @@
 import book_classification as bc
 from nose.tools import *
 from sklearn import svm
-
-book_1 = bc.Book("Myself", "How to model classification",
-	"This is a text about how to classify books.")
-book_2 = bc.Book("Someone", "Animals of the mountains",
-	"A book about how animals survive in extreme environments.")
-book_3 = bc.Book("Myself", "Another of my books",
-	"To classify a book, try processing the text and doing some math.")
-book_4 = bc.Book("Someone", "Animals of the ocean",
-	"The best book describing how animals adapt to survive at the bottom of the sea.")
-
-trainingCollection = bc.BookCollection.from_books([book_1, book_2])
-testingCollection = bc.BookCollection.from_books([book_4, book_3])
+from book_classification.tests.books import *
 
 class DummyFeatures:
 	def __init__(self, items):

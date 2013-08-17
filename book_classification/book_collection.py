@@ -3,6 +3,7 @@ import book_classification as bc
 import random
 from functools import reduce
 import pandas
+import numpy
 
 class BookCollection:
 	def __init__(self, books, books_by_author):
@@ -32,6 +33,15 @@ class BookCollection:
 		for book in self.books():
 			result.append([book.title(), book.author(), len(book.contents()), book])
 		return pandas.DataFrame(result, columns=["Title", "Author", "Size", "Object"])
+
+	def as_arrays(self):
+		# XXX: need to be deterministic, so that shuffling and partitioning produce the same results
+		books_list = list(self.books())
+		books_list.sort(key=lambda x: x.title())
+		
+		books = numpy.array(books_list)
+		authors = numpy.array([book.author() for book in books_list])
+		return books, authors
 
 	def selection(self):
 		return BookCollectionSelection(self)

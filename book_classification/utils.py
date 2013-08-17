@@ -5,7 +5,7 @@ class RandomContext:
 		self._seed = seed
 	def __enter__(self):
 		self._oldstate = random.getstate()
-	def __exit__(self):
+	def __exit__(self, exc_type, exc_value, traceback):
 		random.setstate(self._oldstate)
 
 class DummyTransformer:

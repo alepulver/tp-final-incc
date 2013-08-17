@@ -71,7 +71,8 @@ def test_CanExtractEntropies():
 
 def test_EntropiesFeaturesNames():
 	tokenizer = bc.DummySequenceTokenizer()
-	extractor = bc.EntropiesExtractor(tokenizer)
+	grouper = bc.FixedGrouper(2)
+	extractor = bc.EntropiesExtractor(tokenizer, grouper)
 	vocabulary = set(["one", "two", "three"])
 	eq_(extractor.features_for_vocabulary(vocabulary), vocabulary)
 

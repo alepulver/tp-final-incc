@@ -5,26 +5,20 @@ class SklExtractor:
 		self._extractor = extractor
 		self._output_vocaulary = output_vocabulary
 
-	def fit(self, collection):
+	def fit(self, books_list, y=None):
+		collection = bc.BookCollection.from_books(books_list)
 		self._collection_matrix_extractor = bc.CollectionFeaturesMatrixExtractor(
 			self._extractor, collection, self._output_vocaulary)
+		return self
 
-	def transform(self, collection):
-		return self._collection_matrix_extractor.extract_from(collection)
-
-# is it really needed? can authors be passed around?
-class SklAuthorDecoder:
-	def __init__(self):
-		pass
-	def fit(self, books_list):
-		pass
 	def transform(self, books_list):
-		pass
+		collection = bc.BookCollection.from_books(books_list)
+		return self._collection_matrix_extractor.extract_from(collection)
 
 class SklPipelineObserver:
 	def __init__(self):
 		pass
-	def fit(self, books_list):
+	def fit(self, books_list, y):
 		pass
 	def transform(self, books_list):
 		pass
