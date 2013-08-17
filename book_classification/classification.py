@@ -1,5 +1,3 @@
-from sklearn import svm
-from sklearn.decomposition import TruncatedSVD
 import book_classification as bc
 from scipy import sparse
 
@@ -112,34 +110,14 @@ class ClassificationModel:
 	def decode_authors(self, sequence):
 		return [self._authors_indexer.decode(author) for author in sequence]
 
+# integrate with sklearn, and produce interesting graphics; also think about results comparer
 class ClassificationResults:
 	def __init__(self, classification_model, collection, expected, predicted):
 		self._classification_model = classification_model
 		self._collection = collection
 		self._expected = expected
 		self._predicted = predicted
+	
 	# allow all sklearn metrics, with proxy
 	def confusion_matrix(self):
-		pass
-
-# pass CV method, etc
-class SingleExperiment:
-	def __init__(self, training, testing, model):
-		self._training = training
-		self._testing = testing
-		self._extractor = extractor
-		self._matrix_builder = FeaturesToMatrixEncoder(extractor, transformer_class)
-		self._model_class = model_class()
-
-	def results(self):
-		builder = MatrixBuilder(self._training_col, self._features_extractor)
-		cm = ClassificationModel(builder, self._model_class)
-		# IDEA: use block with implicit input/output conversion, where inside only sklearn code is used
-		# (books and authors are converted to matrices and numbers respectively)
-		return cm.classify(self._testing_col)
-
-class MultipleExperiment:
-	# take experiment constructor, dataset, partitioning/cv scheme
-	# report individual and aggregated statistics
-	def __init__(self, collection, classification_model, partitioning_strategy):
 		pass

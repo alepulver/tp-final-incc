@@ -5,6 +5,7 @@ class RandomContext:
 		self._seed = seed
 	def __enter__(self):
 		self._oldstate = random.getstate()
+		random.seed(self._seed)
 	def __exit__(self, exc_type, exc_value, traceback):
 		random.setstate(self._oldstate)
 
@@ -113,6 +114,8 @@ class NumericIndexer:
 				present.add(element)
 				self._objects.append(element)
 
+		# XXX: same indices if same vocabulary
+		self._objects.sort()
 		self._indices = dict(zip(self._objects, range(len(self._objects))))
 
 	def __len__(self):

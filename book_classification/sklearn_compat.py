@@ -16,9 +16,21 @@ class SklExtractor:
 		return self._collection_matrix_extractor.extract_from(collection)
 
 class SklPipelineObserver:
-	def __init__(self):
-		pass
+	def __init__(self, name):
+		self._name = name
 	def fit(self, books_list, y):
-		pass
-	def transform(self, books_list):
-		pass
+		print("%s fitting:" % self._name)
+		print(books_list)
+		print("with:")
+		print(y)
+		print("")
+		return self
+	def transform(self, data):
+		print("%s transformed:" % self._name)
+		print(data)
+		print("")
+		return data
+	def predict_(self, books_list):
+		print("%s predicting:" % self._name)
+		print(books_list)
+		return books_list
