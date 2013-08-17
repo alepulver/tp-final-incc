@@ -35,6 +35,10 @@ class MixinFeaturesDict:
 		return ((key, self[key]) for key in self.keys())
 	def __contains__(self, key):
 		return key in self.keys()
+	def __eq__(self, other):
+		return list(sorted(self.items())) == list(sorted(other.items()))
+	def __ne__(self, other):
+		return not (self == other)
 
 class TokenVocabularies(MixinFeaturesDict, Features):
 	def __init__(self, extractor, entries):

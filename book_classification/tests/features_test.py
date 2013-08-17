@@ -1,6 +1,29 @@
 import book_classification as bc
 from nose.tools import *
 
+def identicalFeaturesAreEqual(builder):
+	tokenizer = bc.DummySequenceTokenizer()
+	extractor = builder(tokenizer)
+	sequence = ["one", "two", "three", "three"]
+	
+	resultsOne = extractor.extract_from(sequence)
+	resultsTwo = extractor.extract_from(sequence)
+	eq_(resultsOne, resultsTwo)
+
+def differentFeaturesAreNotEqual(builder):
+	tokenizer = bc.DummySequenceTokenizer()
+	extractor = builder(tokenizer)
+	sequenceOne = ["one", "two", "three", "three"]
+	sequenceTwo = ["bye", "four", "three"]
+	
+	resultsOne = extractor.extract_from(sequenceOne)
+	resultsTwo = extractor.extract_from(sequenceTwo)
+	ok_(resultsOne != resultsTwo)
+
+def test_CanCompareVocabularies():
+	identicalFeaturesAreEqual(lambda x: bc.VocabulariesExtractor(x))
+	differentFeaturesAreNotEqual(lambda x: bc.VocabulariesExtractor(x))
+
 def test_CanCombineVocabularies():
 	tokenizer = bc.DummySequenceTokenizer()
 	extractor = bc.VocabulariesExtractor(tokenizer)
@@ -14,6 +37,10 @@ def test_CanCombineVocabularies():
 	eq_(result.total_counts(), 3)
 	eq_(dict(result.items()), expected)
 
+def test_CanCompareFrequencies():
+	identicalFeaturesAreEqual(lambda x: bc.FrequenciesExtractor(x))
+	differentFeaturesAreNotEqual(lambda x: bc.FrequenciesExtractor(x))
+
 def test_CanCombineFrequencies():
 	tokenizer = bc.DummySequenceTokenizer()
 	extractor = bc.FrequenciesExtractor(tokenizer)
@@ -26,6 +53,11 @@ def test_CanCombineFrequencies():
 	eq_(len(result), 3)
 	eq_(result.total_counts(), 7)
 	eq_(dict(result.items()), expected)
+
+def test_CanCompareEntropies():
+	grouper = bc.DummyGrouper()
+	identicalFeaturesAreEqual(lambda x: bc.EntropiesExtractor(x, grouper))
+	differentFeaturesAreNotEqual(lambda x: bc.EntropiesExtractor(x, grouper))
 
 def test_CanCombineEntropies():
 	tokenizer = bc.DummySequenceTokenizer()
@@ -42,6 +74,10 @@ def test_CanCombineEntropies():
 	eq_(result.total_counts(), 4)
 	eq_(dict(result.items()), expected)
 
+def test_CanCompareSeries():
+	identicalFeaturesAreEqual(lambda x: bc.SeriesExtractor(x))
+	differentFeaturesAreNotEqual(lambda x: bc.SeriesExtractor(x))
+
 def test_CanCombineSeries():
 	tokenizer = bc.DummySequenceTokenizer()
 	extractor = bc.SeriesExtractor(tokenizer)
@@ -54,6 +90,11 @@ def test_CanCombineSeries():
 	eq_(len(result), 3)
 	eq_(result.total_counts(), 7)
 	eq_(dict(result.items()), expected)
+
+def test_CanComparePairwiseAssociation():
+	weighting_window = bc.WeightingWindow.uniform(5)
+	identicalFeaturesAreEqual(lambda x: bc.PairwiseAssociationExtractor(x, weighting_window))
+	differentFeaturesAreNotEqual(lambda x: bc.PairwiseAssociationExtractor(x, weighting_window))
 
 def test_CanCombinePairwiseAssociation():
 	tokenizer = bc.DummySequenceTokenizer()

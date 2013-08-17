@@ -1,11 +1,18 @@
-class SklExtractor:
-	def __init__(self):
-		pass
-	def fit(self, books_list):
-		pass
-	def transform(self, books_list):
-		pass
+import book_classification as bc
 
+class SklExtractor:
+	def __init__(self, extractor, output_vocabulary=None):
+		self._extractor = extractor
+		self._output_vocaulary = output_vocabulary
+
+	def fit(self, collection):
+		self._collection_matrix_extractor = bc.CollectionFeaturesMatrixExtractor(
+			self._extractor, collection, self._output_vocaulary)
+
+	def transform(self, collection):
+		return self._collection_matrix_extractor.extract_from(collection)
+
+# is it really needed? can authors be passed around?
 class SklAuthorDecoder:
 	def __init__(self):
 		pass
@@ -21,21 +28,3 @@ class SklPipelineObserver:
 		pass
 	def transform(self, books_list):
 		pass
-
-# TODO: should be an adapter to an existing equivalent model class
-class StatefulClassificationModel:
-	def __init__(self, extractor, transformer, model):
-		self._extractor = extractor
-		self._transformer = transformer
-		self._model = model
-
-	def fit(self, books_list):
-		collection = bc.BookCollection.from_books(books_list)
-		# FIXME: copy transformer and model before passing?
-		self._classification_model = ClassificationModel(collection, self._extractor, self._transformer, self._model)
-
-	def predict(self, books_list):
-		collection = bc.BookCollection.from_books(books_list)
-		predicted_authors = self._classification_model.classify(collection)
-
-		return [predicted_authors[book] for book in books_list]
