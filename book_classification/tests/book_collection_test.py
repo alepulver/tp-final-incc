@@ -12,15 +12,21 @@ my_books_all = {my_book_one, my_book_two, my_book_three, my_book_four, my_book_f
 
 def test_NewCollectionShouldContainBook():
 	aBookCollection = bc.BookCollection.from_books({my_book_one})
-	eq_(aBookCollection.books(), {my_book_one})
+	eq_(set(aBookCollection.books()), {my_book_one})
 	ok_(my_book_one.author() in aBookCollection.authors())
 	eq_(aBookCollection.books_by(my_book_one.author()), {my_book_one})
 	#eq_(aBookCollection._books_by_author, {my_book_one.author(): {my_book_one}})
 
 def test_NewCollectionShouldSeparateByAuthor():
-	aBookCollection = bc.BookCollection.from_books({my_book_one, my_book_four})
-	eq_(aBookCollection.books(), {my_book_one, my_book_four})
-	eq_(aBookCollection._books_by_author, {my_book_one.author(): {my_book_one}, my_book_four.author(): {my_book_four}})
+	aBookCollection = bc.BookCollection.from_books([my_book_one, my_book_four])
+	eq_(set(aBookCollection.books()), {my_book_one, my_book_four})
+	eq_(aBookCollection._books_by_author,
+		{my_book_one.author(): {my_book_one}, my_book_four.author(): {my_book_four}})
+
+def test_BooksPreserveOrderInCollection():
+	books = [my_book_one, my_book_two, my_book_three]
+	aBookCollection = bc.BookCollection.from_books(books)
+	eq_(list(aBookCollection.books()), books)
 
 def test_ShouldFilterByAuthor():
 	aBookCollection = bc.BookCollection.from_books(my_books_all)

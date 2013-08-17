@@ -35,12 +35,8 @@ class BookCollection:
 		return pandas.DataFrame(result, columns=["Title", "Author", "Size", "Object"])
 
 	def as_arrays(self):
-		# XXX: need to be deterministic, so that shuffling and partitioning produce the same results
-		books_list = list(self.books())
-		books_list.sort(key=lambda x: x.title())
-		
-		books = numpy.array(books_list)
-		authors = numpy.array([book.author() for book in books_list])
+		books = numpy.array(self.books())
+		authors = numpy.array([book.author() for book in self.books()])
 		return books, authors
 
 	def selection(self):
@@ -48,7 +44,8 @@ class BookCollection:
 
 	@classmethod
 	def from_books(cls, books):
-		_books = set(books)
+		# XXX: book order need to be deterministic, if list of books is used to construct another collection
+		_books = list(books)
 		_books_by_author = defaultdict(set)
 		for b in _books:
 			_books_by_author[b.author()].add(b)

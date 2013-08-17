@@ -7,7 +7,6 @@ Learn and predict book authors from words using supervised learning
 
 ## Must
 
-- Travis, useful README.md
 - partition viewer, and CV cuts viewer (very important)
 - update notebooks
 - compare with baseline (dummy) classifiers

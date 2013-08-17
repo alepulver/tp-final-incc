@@ -73,13 +73,12 @@ class CollectionFeaturesMatrixExtractor:
 
 		self._collection_features_extractor = CollectionFeaturesExtractor(self._extractor)
 		self._collection_features_encoder = self._collection_features_extractor.encoder_for(
-			self._training, output_vocabulary)
+			self._training, self._output_vocabulary)
 
 	def extract_from(self, collection):
 		collection_features = self._collection_features_extractor.extract_from(collection)
 		return self._collection_features_encoder.encode(collection_features)
 
-# XXX: it's not necessary to encode authors; strings or other objects work just fine
 class ClassificationModel:
 	def __init__(self, extractor, model, output_vocabulary=None):
 		self._extractor = extractor
@@ -99,6 +98,7 @@ class ClassificationModel:
 
 	def predict(self, collection):
 		matrix = self._collection_matrix_extractor.extract_from(collection)
+		# XXX: if passed as strings, they will be encoded by svm
 		authors = self.encode_authors(collection)
 		predicted_authors = self._model.predict(matrix)
 
