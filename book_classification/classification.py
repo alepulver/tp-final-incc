@@ -3,36 +3,27 @@ from sklearn.decomposition import TruncatedSVD
 import book_classification as bc
 from scipy import sparse
 
-class FeaturesEncoder:
-	def __init__(self, extractor, numeric_indexer):
-		self._extractor = extractor
-		self._numeric_indexer = numeric_indexer
-		self._encoder_iterator = self.extractor.tokenizer().if_vocabulary(self)
+class Configuration:
+	#def parameter_names(self):
+	#	raise NotImplementedError()
+	pass
 
-	def encode(self, features):
-		return self._encoder_iterator(features.items())
+class ConfigurationForVocabulary:
+	# input filter
+	# output filter
+	# collapsing, stemming, etc
+	pass
 
-	def decode(self, items):
-		for k,v in items:
-			yield self._numeric_indexer.decode(k), v
+class ConfigurationForComponents:
+	# window size and type
+	# group size
+	# transformer arguments
+	pass
 
-	def case_dynamic_vocabulary(self, tokenizer):
-		def func(items):
-			for k,v in items:
-				if self._numeric_indexer.can_encode(k):
-					yield self._numeric_indexer.encode(k), v
-		return func
-	
-	def case_fixed_vocabulary(self, tokenizer):
-		def func(items):
-			for k,v in items:
-				if not self._numeric_indexer.can_encode(k):
-					raise Exception('element "{}" is not in indexer vocabulary'.format(k))
-				yield self._numeric_indexer.encode(k), v
-		return func
-
-	#@classmethod
-	#def from_features(self, features)
+class ConfigurationForPipeline:
+	# SVD vs NMF vs random projections
+	# SVM vs random forests
+	pass
 
 class CollectionFeatures:
 	def __init__(self, collection_extractor, features_by_book):
@@ -42,46 +33,42 @@ class CollectionFeatures:
 class CollectionFeaturesExtractor:
 	def __init__(self, extractor):
 		self._extractor = extractor
+	
 	def extract_from(self, collection):
 		result = {}
 		for book in collection.books():
 			result[book] = self._extractor.extract_from(book)
 		return CollectionFeatures(self, result)
-	def vocabulary_for(self, collection):
-		pass
-
-class FittingCollectionFeaturesEncoder:
-	def __init__(self, collection_extractor, output_vocabulary=None):
-		self._collection_extractor = collection_extractor
-		self._output_vocabulary = output_vocabulary
-
-	def fit(self, training):
-		if self._output_vocabulary is None:
-			output_vocabulary = self._collection_extractor.vocabulary_for(training)
+	
+	def encoder_for(self, collection, vocabulary):
+		if vocabulary is None:
+			input_vocabulary = bc.HierarchialFeatures.from_book_collection(
+				collection, bc.VocabulariesExtractor(self._extractor.tokenizer())).total().keys()
+			output_vocabulary = self._extractor.features_for_vocabulary(input_vocabulary)
 		else:
-			output_vocabulary = self._output_vocabulary
-		self._features_indexer = bc.NumericIndexer(output_vocabulary)
+			output_vocabulary = self._extractor.features_for_vocabulary(vocabulary)
+		return FeaturesEncoder(output_vocabulary)
 
-	def transform(self, collection):
-		collection_features = self._collection_extractor.extract_from(collection)
-		
-		matrix = sparse.dok_matrix((len(collection), len(self._features_indexer)))
-		for i,book in enumerate(collection.books()):
-			features = collection_features[book]
-			for j,v in self._features_encoder(features):
-				matrix[i, j] = v
+class FeaturesEncoder:
+	def __init__(self, vocabulary):
+		self._vocabulary = vocabulary
+		self._numeric_indexer = bc.NumericIndexer(self._vocabulary)
 
-		return matrix
+	def encode(self, features):
+		for k,v in features.items():
+			if self._numeric_indexer.can_encode(k):
+				yield self._numeric_indexer.encode(k), v			
+
+	def decode(self, items):
+		for k,v in items:
+			yield self._numeric_indexer.decode(k), v
 
 class CollectionFeaturesEncoder:
 	def __init__(self, collection_extractor, base_collection, output_vocabulary=None):
 		self._collection_extractor = collection_extractor
 		self._base_collection = base_collection
-		#self._authors_indexer = bc.NumericIndexer(base_collection.authors())
-
-		if output_vocabulary is None:
-			output_vocabulary = self._collection_extractor.vocabulary_for(base_collection)
-		self._features_indexer = bc.NumericIndexer(output_vocabulary)
+		self._features_encoder = self._collection_extractor.encoder_for(
+			base_collection, output_vocabulary)
 
 	def encode(self, collection):
 		collection_features = self._collection_extractor.extract_from(collection)
@@ -92,17 +79,7 @@ class CollectionFeaturesEncoder:
 			for j,v in self._features_encoder(features):
 				matrix[i, j] = v
 
-		#authors = [self._authors_indexer.encode(book.author()) for book in collection.books()]
-
-		#return matrix, authors
 		return matrix
-	
-	# FIXME: should be in classification model
-	def decode(self, collection, results):
-		result = {}
-		for book,author_code in zip(collection.books(), results):
-			result[book] = self._authors_indexer.decode(author_code)
-		return result
 
 class ClassificationModel:
 	def __init__(self, collection_extractor, transformer, model, output_vocabulary=None):
@@ -110,19 +87,21 @@ class ClassificationModel:
 		self._transformer = transformer
 		self._model = model
 
-	def fit(self, training):
-		vocabulary = self._collection_extractor.vocabulary_for(training)
-		self._encoder = CollectionFeaturesEncoder(
-			self._collection_extractor, training, output_vocabulary)
-		matrix, authors = self._encoder.encode_collection(training)
+	def fit(self, collection):
+		self._training = collection
+		self._collection_encoder = self._collection_extractor.encoder_for(
+			self._training, self._output_vocabulary)
+		self._authors_indexer = bc.NumericIndexer(self._training.authors())
+		
+		matrix = self._collection_encoder.encode(self._training)
+		authors = self.encode_authors(self._training)
+		
 		self._transformer.fit(matrix)
 		processed_matrix = self._transformer.transform(matrix)
 		self._model.fit(processed_matrix, authors)
 
-	def predict(self, collection):
-		pass
 
-	def classify(self, collection):
+	def predict(self, collection):
 		matrix, authors = self._encoder.encode_collection(collection)
 		processed_matrix = self._transformer.transform(matrix)
 		predicted_authors_encoded = self._model.predict(processed_matrix)
@@ -132,6 +111,11 @@ class ClassificationModel:
 		for book,predicted in zip(collection.books(), predicted_authors):
 			result[book] = predicted
 		return result
+
+	def encode_authors(self, collection):
+		return [self._authors_indexer.encode(book.author()) for book in collection.books()]
+	def decode_authors(self, sequence):
+		return [self._authors_indexer.decode(author) for author in sequence]
 
 class ClassificationResults:
 	def __init__(self, classification_model, collection, expected, predicted):
