@@ -10,6 +10,7 @@ Learn and predict book authors from words using supervised learning
 - partition viewer, and CV cuts viewer (very important)
 - update notebooks
 - compare with baseline (dummy) classifiers
+- compare with tf-idf and bag of words
 - visualize experiment results, copy sklearn graphs with objects
 
 ## Later
@@ -24,6 +25,7 @@ Learn and predict book authors from words using supervised learning
 ## Maybe
 - finish transforming tokenizers (stemmer, lemmatizer, ...) and analysis helper
 - pipeline (staged) viewer, tracker and debugger
+- profiling to speed up code
 - automatic cache, persistence, and change detector (automated regression testing)
 - look at exported items in namespaces, remove some and partition if needed
 - try random projections and non-negative matrix factorization, instead of sparse SVD
