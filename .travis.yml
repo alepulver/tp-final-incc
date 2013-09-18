@@ -3,6 +3,6 @@ python:
 #  - "3.2"
   - "3.3"
 # command to install dependencies
-install: "travis.sh"
+install: "sh travis.sh"
 # command to run tests
 script: nosetests

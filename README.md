@@ -3,6 +3,8 @@ tp-final-incc
 
 Learn and predict book authors from words using supervised learning.
 
+[![Build Status](https://travis-ci.org/[alepulver]/[tp-final-incc].png)](https://travis-ci.org/[alepulver]/[tp-final-incc])
+
 # Installation
 
 For now, clone the repository and run `python setup.py install`. It requires Pyton 3.x or greater, so be sure to set up a virtual environment if needed.
