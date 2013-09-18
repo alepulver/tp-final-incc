@@ -3,7 +3,7 @@ tp-final-incc
 
 Learn and predict book authors from words using supervised learning.
 
-[![Build Status](https://travis-ci.org/[alepulver]/[tp-final-incc].png)](https://travis-ci.org/[alepulver]/[tp-final-incc])
+[![Build Status](https://travis-ci.org/alepulver/tp-final-incc.png)](https://travis-ci.org/alepulver/tp-final-incc)
 
 # Installation
 
