@@ -1,7 +1,29 @@
 tp-final-incc
 =============
 
-Learn and predict book authors from words using supervised learning
+Learn and predict book authors from words using supervised learning.
+
+# Installation
+
+For now, clone the repository and run `python setup.py install`. It requires Pyton 3.x or greater, so be sure to set up a virtual environment if needed.
+
+# Development
+
+Clone the repository and run the following.
+
+```
+# install packages, change accordingly if not Ubuntu
+sudo apt-get install python3 python3-dev libblas-dev libatlas-dev liblapack-dev gfortran
+
+# set up virtual environment
+pyvenv-3.3 ~/my-python3-env
+source ~/my-python3-env/bin/activate
+wget https://bitbucket.org/pypa/setuptools/raw/bootstrap/ez_setup.py -O - | python
+easy_install pip
+
+# install dependencies
+pip install -r requirements.txt
+```
 
 # TODO
 
