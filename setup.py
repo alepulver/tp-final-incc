@@ -10,7 +10,11 @@ setup(
 
     # Project uses reStructuredText, so ensure that the docutils get
     # installed or upgraded on the target machine
-    install_requires = ['docutils>=0.3', 'nltk>=3.0a2', 'scikit-learn>=0.14', 'pandas'],
+    install_requires = [
+        'docutils>=0.3',
+        'nltk>=3.0a2',
+        'scikit-learn>=0.14',
+        'pandas'],
     tests_require = ['nose>=1.0'],
     # package_data = {
     #     # If any package contains *.txt or *.rst files, include them:
