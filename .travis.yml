@@ -10,5 +10,8 @@ virtualenv:
 # command to install dependencies
 install: "./travis-install.sh"
 
+before_script:
+  - source /home/ale/Programs/my-python3-env/bin/activate
+
 # command to run tests
 script: nosetests
