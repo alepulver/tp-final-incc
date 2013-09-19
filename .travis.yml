@@ -4,8 +4,8 @@ python:
 #  - "3.2"
   - "3.3"
 
-virtualenv:
-  system_site_packages: true
+#virtualenv:
+#  system_site_packages: true
 
 # command to install dependencies
 install: "./travis-install.sh"

@@ -8,12 +8,14 @@ sudo mkdir -p /home/ale/Programs
 sudo chown $USER:$USER /home/ale/Programs
 mv my-python3-env /home/ale/Programs
 
-source /home/ale/Programs/my-python3-env/bin/activate
+#source /home/ale/Programs/my-python3-env/bin/activate
 
 #rm -rf $VIRTUAL_ENV
 #sudo ln -s /home/ale/Programs/my-python3-env $VIRTUAL_ENV
 
 mv setup.cfg setup.cfg.bak
+
+sudo apt-get install python3-pkg-resources
 
 #sudo apt-get install libblas-dev libatlas-dev liblapack-dev gfortran
 
