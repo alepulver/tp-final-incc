@@ -9,8 +9,8 @@ sudo mv my-python3-env /home/ale/Programs
 
 source /home/ale/Programs/my-python3-env/bin/activate
 
-rm -rf $VIRTUAL_ENV
-sudo ln -s /home/ale/Programs/my-python3-env $VIRTUAL_ENV
+#rm -rf $VIRTUAL_ENV
+#sudo ln -s /home/ale/Programs/my-python3-env $VIRTUAL_ENV
 
 mv setup.cfg setup.cfg.bak
 
