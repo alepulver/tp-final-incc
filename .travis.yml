@@ -12,7 +12,7 @@ install: "./travis-install.sh"
 
 before_script:
   - source $HOME/my-python3-env/bin/activate
-  # XXX: there, setuptools/pip installed binaries in "local/bin" instead of "bin"
+  # XXX: there, setuptools/pip installs binaries in "local/bin" instead of "bin"
   - export PATH="$VIRTUAL_ENV/local/bin:$PATH"
 
 # command to run tests
