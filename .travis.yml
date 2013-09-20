@@ -11,7 +11,8 @@ python:
 install: "./travis-install.sh"
 
 before_script:
-  - source /home/ale/Programs/my-python3-env/bin/activate
+  - source $HOME/my-python3-env/bin/activate
+  - export PATH="$VIRTUAL_ENV/local/bin:$PATH"
 
 # command to run tests
 script: nosetests
