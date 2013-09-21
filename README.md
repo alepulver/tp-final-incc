@@ -31,27 +31,28 @@ pip install -r requirements.txt
 
 ## Must
 
-- update notebooks
+- compare with baseline (dummy) classifiers
+- venn diagrams, circular visualization, etc
 
 ### Plotting interface for pandas
 
-- forget about bokeh, chaco, etc and add plot class for better GoG plotting of dataframes with an R interface (for now, later maybe JS)
+- forget about bokeh, chaco, etc and add plot class for better GoG plotting of dataframes with external interfaces (ggplot2/ggobi for R, protovis for JS)
 - try genetic algorithm to select plots interactively for finding interesting things in a dataset, and adding information to the plots based on decisions
 
 ### Visualization
 
 - show experiment results, copy sklearn graphs with a model
 - distribution vs contributions, from the same word/author matrix
-- rework filter interface (allowing to stack them and finally apply them together); and show Venn diagram relating to original sample
+- to measure contributions, aggregate differences from global average?
 - partition viewer, and CV cuts viewer (very important)
 - comparer for two feature sets, like entropies with different windows
 
 ## Later
 
-- compare with tf-idf and bag of words
-- compare with baseline (dummy) classifiers
+- write documentation/code examples with Sphinx
 - weighting windows
 - using word association to classify
+- replace BookCollectionSelection for DataFramePartitioner (the only operation pandas can't do that book collections can), and replace every operation with Pandas
 
 ## Maybe
 - finish transforming tokenizers (stemmer, lemmatizer, ...) and analysis helper

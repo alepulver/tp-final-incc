@@ -2,11 +2,14 @@ import re
 import zipfile
 import gzip
 
+
 class DummyBook:
     def __init__(self, text):
         self._text = text
+
     def contents(self):
         return self._text
+
 
 class Book:
     def __init__(self, author, title, contents, source=None):
@@ -17,10 +20,13 @@ class Book:
 
     def author(self):
         return self._author
+
     def title(self):
         return self._title
+
     def contents(self):
         return self._contents
+
     def source(self):
         return self._source
 

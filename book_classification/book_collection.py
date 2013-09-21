@@ -1,9 +1,9 @@
-from collections import Counter, defaultdict
+from collections import defaultdict, Counter
 import book_classification as bc
 import random
-from functools import reduce
 import pandas
 import numpy
+
 
 class BookCollection:
     def __init__(self, books, books_by_author):
@@ -12,10 +12,13 @@ class BookCollection:
 
     def __len__(self):
         return len(self._books)
+
     def books(self):
         return self._books
+
     def books_by(self, author):
         return self._books_by_author[author]
+
     def authors(self):
         return self._books_by_author.keys()
 
@@ -56,12 +59,73 @@ class BookCollection:
         books = [bc.Book.from_file_path(path) for path in path_list]
         return cls.from_books(books)
 
+    @classmethod
+    def from_dataframe(cls, dataframe):
+        return cls.from_books(dataframe['Object'])
+
+
+class BookCollectionAnalysis:
+    def __init__(self, book_collection, tokenizer):
+        self._book_collection = book_collection
+        self._tokenizer = tokenizer
+        extractor = bc.VocabulariesExtractor(self._tokenizer)
+        self._vocabulary = bc.HierarchialFeatures.from_book_collection(
+            self._book_collection, extractor)
+
+    def vocabulary(self):
+        return self._vocabulary
+
+    def shared_words_by_books(self):
+        books_for_word = Counter()
+        for book in self._book_collection.books():
+            for word in self._vocabulary.by_book(book).keys():
+                books_for_word[word] += 1
+
+        word_count_by_n = Counter()
+        for word, count in books_for_word.items():
+            word_count_by_n[count] += 1
+
+        return word_count_by_n
+
+    def shared_words_by_authors(self):
+        authors_for_word = Counter()
+        for author in self._book_collection.authors():
+            for word in self._vocabulary.by_author(author).keys():
+                authors_for_word[word] += 1
+
+        word_count_by_n = Counter()
+        for word, count in authors_for_word.items():
+            word_count_by_n[count] += 1
+
+        return word_count_by_n
+
+    def vocabulary_size_by_book(self):
+        result = []
+        for book in self._book_collection.books():
+            unique_words = len(self._vocabulary.by_book(book))
+            result.append([book, unique_words])
+        return pandas.DataFrame(result, columns=["Book", "Unique words"])
+
+    def vocabulary_size_by_author(self):
+        result = []
+        for author in self._book_collection.authors():
+            unique_words = len(self._vocabulary.by_author(author))
+            result.append([author, unique_words])
+        return pandas.DataFrame(result, columns=["Author", "Unique words"])
+
+
 class BookCollectionSelection:
     def __init__(self, book_collection):
         self._book_collection = book_collection
 
     def find_duplicates(self):
-        raise NotImplementedError()
+        dataframe = self._book_collection.as_dataframe()
+        duplicates = dataframe[dataframe.duplicated('Title')]
+        return BookCollection.from_dataframe(duplicates)
+
+    def remove_duplicates(self):
+        dataframe = self._book_collection.as_dataframe()
+        return BookCollection.from_dataframe(dataframe.drop_duplicated('Title'))
 
     def filter_authors(self, condition):
         result = []
@@ -101,16 +165,16 @@ class BookCollectionSelection:
 
     def split_per_author_number(self, n):
         assert(n > 0)
-        
+
         author_sizes = {}
         for author in self._book_collection.authors():
             author_sizes[author] = n
-        
+
         return self.split_per_author_with_sizes(author_sizes)
 
     def split_per_author_percentage(self, percentage):
         assert(0 < percentage < 1)
-        
+
         author_sizes = {}
         for author in self._book_collection.authors():
             n = len(self._book_collection.books_by(author))
@@ -120,7 +184,7 @@ class BookCollectionSelection:
 
     def split_per_author_with_sizes(self, quantities):
         assert(len(quantities) > 0)
-        for author,size in quantities.items():
+        for author, size in quantities.items():
             if size < 2:
                 raise Exception("can not partition author '%s' with less than 2 books" % author)
 
@@ -136,7 +200,7 @@ class BookCollectionSelection:
     def sample_authors(self, n):
         authors = random.sample(list(self._book_collection.authors()), n)
         return self.filter_authors(lambda x: x in authors)
-    
+
     def sample_books(self, n):
         books = random.sample(list(self._book_collection.books()), n)
         return self.filter_books(lambda x: x in books)

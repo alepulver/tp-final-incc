@@ -5,5 +5,5 @@ from .features_extractors import *
 from .classification import *
 from .tokenizer import *
 from .utils import *
-from .workflow import *
+from .collection_features import *
 from .sklearn_compat import *
