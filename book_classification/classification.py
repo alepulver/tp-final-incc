@@ -1,4 +1,5 @@
 import book_classification as bc
+import random
 
 
 class ClassificationModel:
@@ -45,3 +46,86 @@ class ClassificationResults:
     # allow all sklearn metrics, with proxy
     def confusion_matrix(self):
         pass
+
+    def metric(self):
+        return sum(1 for x,y in zip(self._expected, self._predicted) if x==y) / len(self._expected)
+
+
+class ExperimentSeries:
+    pass
+
+
+class ESOverAuthorsCount:
+    def __init__(self, book_collection, classification_model):
+        self._book_collection = book_collection
+        self._classification_model = classification_model
+        self._config = {
+            'num_books': 8,
+            'training_percentage': 0.6,
+            'num_trials': 3
+        }
+
+    def set_parameters(self, config):
+        self._config.update(config)
+
+    def run_experiment(self):
+        num_books = self._config['num_books']
+        collection = self._book_collection.selection().exclude_authors_below(num_books)
+        collection = collection.selection().sample_authors(10)
+        total_authors = len(collection.authors())
+        results = []
+
+        # XXX: allow passing the total number of experiments to evaluate, and
+        # constants to ponderate between trials and author sets
+        for num_authors in range(2, total_authors+1):
+            num_sets = round(total_authors/num_authors)
+            num_trials = min(num_authors, self._config['num_trials'])
+            current_results = []
+
+            for _ in range(num_sets):
+                current_collection = collection.selection().sample_authors(num_authors)
+                for _ in range(num_trials):
+                    c = current_collection.selection().sample_books_per_author(num_books)
+                    c = c.selection().split_per_author_percentage(self._config['training_percentage'])
+                    training, testing = c
+                    #print("%s %s" % (len(training), len(testing)))
+                    self._classification_model.fit(training)
+                    metric = self._classification_model.predict(testing).metric()
+                    current_results.append(metric)
+            results.append(current_results)
+
+        return results
+
+
+class ESOverTrainingProportion:
+    def __init__(self, book_collection, classification_model):
+        self._book_collection = book_collection
+        self._classification_model = classification_model
+        self._config = {
+            'num_books': 15,
+            'num_authors': 4,
+            'num_steps': 10,
+            'num_trials': 6,
+        }
+
+    def set_parameters(self, config):
+        self._config.update(config)
+
+    def run_experiment(self):
+        results = []
+        for i in range(1, self._config['num_steps']):
+            percentage = i/self._config['num_steps']
+
+            trial_results = []
+            for _ in range(self._config['num_trials']):
+                collection = self._book_collection.selection().sample_authors_with_books(
+                    self._config['num_authors'], self._config['num_books'])
+
+                training, testing = collection.selection().split_per_author_percentage(percentage)
+                self._classification_model.fit(training)
+                metric = self._classification_model.predict(testing).metric()
+                trial_results.append(metric)
+
+            results.append(trial_results)
+
+        return results

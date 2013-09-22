@@ -31,34 +31,25 @@ pip install -r requirements.txt
 
 ## Must
 
+- add isomap graphic showing plane distances estimate and colors for each author (maybe add mesh to fill background with classiffication space)
 - compare with baseline (dummy) classifiers
-- venn diagrams, circular visualization, etc
-
-### Plotting interface for pandas
-
-- forget about bokeh, chaco, etc and add plot class for better GoG plotting of dataframes with external interfaces (ggplot2/ggobi for R, protovis for JS)
-- try genetic algorithm to select plots interactively for finding interesting things in a dataset, and adding information to the plots based on decisions
+- try finding which words separate authors (or topics, etc) by looking at non-negative matrix factorization components, or factor analysis
 
 ### Visualization
 
-- show experiment results, copy sklearn graphs with a model
-- distribution vs contributions, from the same word/author matrix
-- to measure contributions, aggregate differences from global average?
-- partition viewer, and CV cuts viewer (very important)
-- comparer for two feature sets, like entropies with different windows
+- measure similariy of text fragments/chapters between books and authors (clustering with unsupervised learning)
 
 ## Later
 
-- write documentation/code examples with Sphinx
 - weighting windows
 - using word association to classify
-- replace BookCollectionSelection for DataFramePartitioner (the only operation pandas can't do that book collections can), and replace every operation with Pandas
+- simple automatic cache with persistence (try joblib)
+- profiling to speed up code
 
 ## Maybe
-- finish transforming tokenizers (stemmer, lemmatizer, ...) and analysis helper
+- finish transforming tokenizers (stemmer, lemmatizer, ...), and collapsing statistics
 - integrate extractor parameters with sklearn's grid search
-- simple automatic cache with persistence
-- profiling to speed up code
+- try random projections and manifold learning instead of sparse SVD
 - look at exported items in namespaces, remove some and partition if needed
-- try random projections and non-negative matrix factorization, instead of sparse SVD
-- add feature aggregation and integrate with sklearn
+- add feature aggregation support and integrate with sklearn
+- write documentation/code examples with Sphinx

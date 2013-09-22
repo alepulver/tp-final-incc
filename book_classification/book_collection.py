@@ -125,7 +125,7 @@ class BookCollectionSelection:
 
     def remove_duplicates(self):
         dataframe = self._book_collection.as_dataframe()
-        return BookCollection.from_dataframe(dataframe.drop_duplicated('Title'))
+        return BookCollection.from_dataframe(dataframe.drop_duplicates('Title'))
 
     def filter_authors(self, condition):
         result = []
@@ -184,9 +184,9 @@ class BookCollectionSelection:
 
     def split_per_author_with_sizes(self, quantities):
         assert(len(quantities) > 0)
-        for author, size in quantities.items():
-            if size < 2:
-                raise Exception("can not partition author '%s' with less than 2 books" % author)
+        #for author, size in quantities.items():
+        #    if size < 2:
+        #        raise Exception("can not partition author '%s' with less than 2 books" % author)
 
         def condition(book):
             author = book.author()
@@ -204,3 +204,24 @@ class BookCollectionSelection:
     def sample_books(self, n):
         books = random.sample(list(self._book_collection.books()), n)
         return self.filter_books(lambda x: x in books)
+
+    def sample_books_per_author(self, n):
+        result = []
+        for author in self._book_collection.authors():
+            books = self._book_collection.books_by(author)
+            result.extend(random.sample(list(books), n))
+        return self.filter_books(lambda x: x in result)
+
+    def sample_authors_with_books(self, num_authors, num_books):
+        seq = self._book_collection.authors()
+        cond = lambda author: len(self._book_collection.books_by(author)) >= num_books
+        authors = list(filter(cond, seq))
+
+        authors = random.sample(authors, num_authors)
+        books = []
+        for a in authors:
+            author_books = list(self._book_collection.books_by(a))
+            selected_books = random.sample(author_books, num_books)
+            books.extend(selected_books)
+
+        return BookCollection.from_books(books)
