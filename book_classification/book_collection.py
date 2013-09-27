@@ -69,7 +69,7 @@ class BookCollectionAnalysis:
         self._book_collection = book_collection
         self._tokenizer = tokenizer
         extractor = bc.VocabulariesExtractor(self._tokenizer)
-        self._vocabulary = bc.HierarchialFeatures.from_book_collection(
+        self._vocabulary = bc.CollectionHierarchialFeatures.from_book_collection(
             self._book_collection, extractor)
 
     def vocabulary(self):

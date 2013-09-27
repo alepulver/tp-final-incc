@@ -1,6 +1,7 @@
 import book_classification as bc
 from scipy import sparse
 from functools import reduce
+from collections import defaultdict
 
 
 class CollectionFeatures:
@@ -15,6 +16,15 @@ class CollectionFeatures:
     def by_book(self, book):
         return self._features_by_book[book]
 
+    def select(self, filter_pred):
+        features_by_book = defaultdict(dict)
+        for book, features in self._features_by_book.items():
+            for k, v in features.items():
+                if filter_pred(k):
+                    features_by_book[book][k] = v
+
+        return self.__class__(self._collection, self._collection_extractor, features_by_book)
+
 
 class CollectionFeaturesExtractor:
     def __init__(self, extractor):
@@ -26,15 +36,22 @@ class CollectionFeaturesExtractor:
             result[book] = self._extractor.extract_from(book)
         return CollectionFeatures(collection, self, result)
 
-    def encoder_for(self, collection, vocabulary=None):
-        if vocabulary is None:
-            input_vocabulary = bc.CollectionHierarchialFeatures.from_book_collection(
-                collection, bc.VocabulariesExtractor(self._extractor._tokenizer)).total().keys()
-            output_vocabulary = self._extractor.features_for_vocabulary(input_vocabulary)
-        else:
-            output_vocabulary = self._extractor.features_for_vocabulary(vocabulary)
-        encoder = FeaturesEncoder(output_vocabulary)
+    def encoder_for(self, collection):
+        vocabulary_extractor = bc.VocabulariesExtractor(self._extractor._tokenizer)
+        vocabulary = bc.CollectionHierarchialFeatures.from_book_collection(
+            collection, vocabulary_extractor).total().keys()
+        encoder = FeaturesEncoder(vocabulary)
         return CollectionFeaturesEncoder(encoder)
+
+
+class CollectionFeaturesFilteringExtractor:
+    def __init__(self, extractor, filter_predicate):
+        self._extractor = extractor
+        self._filter_predicate = filter_predicate
+
+    def extract_from(self, collection):
+        features = self._extractor.extract_from(collection)
+        return features.select(self._filter_predicate)
 
 
 class CollectionHierarchialFeatures:
@@ -73,7 +90,7 @@ class CollectionHierarchialFeaturesExtractor:
     def extract_from(self, collection):
         return CollectionHierarchialFeatures.from_book_collection(collection, extractor)
 
-    def encoder_for(self, collection, vocabulary=None):
+    def encoder_for(self, collection):
         raise NotImplementedError()
 
 
@@ -112,15 +129,11 @@ class CollectionFeaturesEncoder:
 
 
 class CollectionFeaturesMatrixExtractor:
-    def __init__(self, extractor, base_collection, output_vocabulary=None):
-        self._extractor = extractor
+    def __init__(self, extractor, base_collection):
+        self._extractor = CollectionFeaturesExtractor(extractor)
         self._training = base_collection
-        self._output_vocabulary = output_vocabulary
-
-        self._collection_features_extractor = CollectionFeaturesExtractor(self._extractor)
-        self._collection_features_encoder = self._collection_features_extractor.encoder_for(
-            self._training, self._output_vocabulary)
+        self._encoder = self._extractor.encoder_for(self._training)
 
     def extract_from(self, collection):
-        collection_features = self._collection_features_extractor.extract_from(collection)
-        return self._collection_features_encoder.encode(collection_features)
+        features = self._extractor.extract_from(collection)
+        return self._encoder.encode(features)

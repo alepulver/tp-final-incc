@@ -3,27 +3,29 @@ import random
 
 
 class ClassificationModel:
-    def __init__(self, extractor, model, output_vocabulary=None):
+    def __init__(self, extractor, dim_reducer, classifier):
         self._extractor = extractor
-        self._model = model
-        self._output_vocabulary = output_vocabulary
+        self._dim_reducer = dim_reducer
+        self._classifier = classifier
 
     def fit(self, collection):
         self._training = collection
         self._collection_matrix_extractor = bc.CollectionFeaturesMatrixExtractor(
-            self._extractor, self._training, self._output_vocabulary)
+            self._extractor, self._training)
         self._authors_indexer = bc.NumericIndexer(self._training.authors())
 
         matrix = self._collection_matrix_extractor.extract_from(self._training)
         authors = self.encode_authors(self._training)
 
-        self._model.fit(matrix, authors)
+        reduced_matrix = self._dim_reducer.fit_transform(matrix)
+        self._classifier.fit(reduced_matrix, authors)
 
     def predict(self, collection):
         matrix = self._collection_matrix_extractor.extract_from(collection)
         # XXX: if passed as strings, they will be encoded by svm
         authors = self.encode_authors(collection)
-        predicted_authors = self._model.predict(matrix)
+        reduced_matrix = self._dim_reducer.transform(matrix)
+        predicted_authors = self._classifier.predict(reduced_matrix)
 
         return ClassificationResults(self, collection,
             self.decode_authors(authors), self.decode_authors(predicted_authors))
@@ -49,6 +51,9 @@ class ClassificationResults:
 
     def metric(self):
         return sum(1 for x,y in zip(self._expected, self._predicted) if x==y) / len(self._expected)
+
+    def baseline_metric(self):
+        return sum(len(self._collection.books_by(a)/len(self._collection))**2 for a in self._collection.authors())
 
 
 class ExperimentSeries:

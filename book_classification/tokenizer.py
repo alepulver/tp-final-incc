@@ -102,8 +102,10 @@ class CollapsingTokenizer(MixinTokenizerEvents, FixedTokenizer):
             else:
                 self.broadcast(lambda x: x.convert(token, self._fillvalue))
                 yield self._fillvalue
+
     def vocabulary(self):
         return self._vocabulary.union(set([self._fillvalue]))
+
 
 class StemmingTokenizer(MixinTokenizerEvents, DynamicTokenizer):
     def __init__(self, tokenizer, stemmer):

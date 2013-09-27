@@ -31,25 +31,21 @@ pip install -r requirements.txt
 
 ## Must
 
+- simple automatic cache with persistence (try joblib)
 - add isomap graphic showing plane distances estimate and colors for each author (maybe add mesh to fill background with classiffication space)
-- compare with baseline (dummy) classifiers
-- try finding which words separate authors (or topics, etc) by looking at non-negative matrix factorization components, or factor analysis
-
-### Visualization
-
-- measure similariy of text fragments/chapters between books and authors (clustering with unsupervised learning)
+- try finding which words (component sets) separate authors by looking at non-negative matrix factorization components, or factor analysis
+- try using word association (moving windows) to classify, and "entropified" version
+- use configurable decorators in place of tokenizers and extractors
 
 ## Later
 
-- weighting windows
-- using word association to classify
-- simple automatic cache with persistence (try joblib)
+- add more tests
+- try random projections and manifold learning instead of sparse SVD
 - profiling to speed up code
 
 ## Maybe
 - finish transforming tokenizers (stemmer, lemmatizer, ...), and collapsing statistics
 - integrate extractor parameters with sklearn's grid search
-- try random projections and manifold learning instead of sparse SVD
 - look at exported items in namespaces, remove some and partition if needed
 - add feature aggregation support and integrate with sklearn
 - write documentation/code examples with Sphinx
