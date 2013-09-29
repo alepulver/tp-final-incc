@@ -31,19 +31,18 @@ pip install -r requirements.txt
 
 ## Must
 
-- simple automatic cache with persistence (try joblib)
 - add isomap graphic showing plane distances estimate and colors for each author (maybe add mesh to fill background with classiffication space)
 - try finding which words (component sets) separate authors by looking at non-negative matrix factorization components, or factor analysis
-- try using word association (moving windows) to classify, and "entropified" version
-- use configurable decorators in place of tokenizers and extractors
 
 ## Later
 
+- use configurable decorators in place of tokenizers and extractors (for vocabulary, filters, cache, etc)
 - add more tests
 - try random projections and manifold learning instead of sparse SVD
 - profiling to speed up code
 
 ## Maybe
+- try using word association (moving windows) to classify, and "entropified" version; not feasible without FFT?
 - finish transforming tokenizers (stemmer, lemmatizer, ...), and collapsing statistics
 - integrate extractor parameters with sklearn's grid search
 - look at exported items in namespaces, remove some and partition if needed

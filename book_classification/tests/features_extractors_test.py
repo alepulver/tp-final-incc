@@ -64,11 +64,12 @@ def test_CanExtractPairwiseAssociation():
 
     assocs = extractor.extract_from(
         ["one", "two", "one", "three", "three", "two",
-        "three", "one", "two", "three", "one", "one"])
+         "three", "one", "two", "three", "one", "one"])
     expected = {
-        ('three', 'three'): 1.7000000000000002, ('three', 'one'): 1.1, ('one', 'three'): 0.9,
-        ('two', 'three'): 1.0000000000000002, ('one', 'two'): 0.5, ('one', 'one'): 0.6,
-        ('two', 'two'): 0.5, ('three', 'two'): 1.2000000000000002, ('two', 'one'): 0.5
+        ('three', 'one'): 0.0225, ('three', 'two'): 0.022500000000000003,
+        ('one', 'three'): 0.015, ('one', 'one'): 0.0225, ('two', 'one'): 0.01,
+        ('two', 'two'): 0.02, ('two', 'three'): 0.02,
+        ('three', 'three'): 0.05500000000000001, ('one', 'two'): 0.0125
     }
 
     eq_(len(assocs), 9)

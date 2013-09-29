@@ -1,4 +1,7 @@
 import random
+import hashlib
+#from pyhashxx import hashxx
+import book_classification as bc
 
 
 class RandomContext:
@@ -11,14 +14,6 @@ class RandomContext:
 
     def __exit__(self, exc_type, exc_value, traceback):
         random.setstate(self._oldstate)
-
-
-class DummyTransformer:
-    def fit(self, data):
-        pass
-
-    def transform(self, data):
-        return data
 
 
 class Grouper:
@@ -45,6 +40,13 @@ class FixedGrouper(Grouper):
         if len(group) > 0:
             yield group
 
+    def parts_size(self):
+        return self._parts_size
+
+    def uuid(self):
+        text = "%s(%s)" % (self.__class__.__name__, self._parts_size)
+        return bc.digest(text)
+
 
 class SlidingGrouper(Grouper):
     def __init__(self, parts_size):
@@ -59,69 +61,12 @@ class SlidingGrouper(Grouper):
                 yield list(window)
                 window.pop(0)
 
+    def parts_size(self):
+        return self._parts_size
 
-# IDEA: dynamic size window, the one choosing the size is the caller?
-
-class WeightingWindow:
-    #def __len__(self):
-    #   raise NotImplementedError()
-    def weights_for(self, window):
-        raise NotImplementedError()
-
-    def center_for(self, window):
-        raise NotImplementedError()
-
-
-class DenseWeightingWindow(WeightingWindow):
-    pass
-
-
-class SparseWeightingWindow(WeightingWindow):
-    pass
-
-
-class FunctionWeightingWindow(WeightingWindow):
-    pass
-
-
-class WeightingWindowFactory:
-    @classmethod
-    def uniform(cls, size):
-        pass
-
-
-class WeightingWindow:
-    # TODO: define symmetric ones by growth function, from 1 to n/2 and reverse after half; normalize at the end
-    def __init__(self, weights):
-        assert(len(weights) > 0 and len(weights) % 2 == 1)
-        assert(abs(1 - sum(weights)) < 10**-5)
-        self._weights = weights
-
-    def __getitem__(self, key):
-        return self._weights[key]
-
-    def __len__(self):
-        return len(self._weights)
-
-    @classmethod
-    def uniform(cls, size):
-        window = [1/size for _ in range(size)]
-        return cls(window)
-
-    @classmethod
-    def triangular(cls, size, step):
-        middle = size / 2
-        window = []
-        for i in range(1, middle+2):
-            window.append(i*step)
-        for i in reversed(range(middle+2, size+1)):
-            window.append(i*step)
-        normalizer = sum(window)
-        return cls(w/normalizer for w in window)
-
-    @classmethod
-    def gaussian(cls, size, mu, sigma):
-        pass
+    def uuid(self):
+        text = "%s(%s)" % (self.__class__.__name__, self._parts_size)
+        return bc.digest(text)
 
 
 class NumericIndexer:
@@ -152,3 +97,19 @@ class NumericIndexer:
 
     def decode(self, index):
         return self._objects[index]
+
+    def vocabulary(self):
+        return self._objects
+
+    def uuid(self):
+        text = "%s(%s)" % (self.__class__.__name__, bc.digest(repr(self._objects)))
+        return bc.digest(text)
+
+
+def digest(text):
+    result = hashlib.md5()
+    result.update(text.encode())
+    return result.hexdigest()
+
+#def digest2(text):
+#    return hashxx(text.encode(), seed=1)

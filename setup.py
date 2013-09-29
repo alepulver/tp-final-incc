@@ -14,7 +14,8 @@ setup(
         'docutils>=0.3',
         'nltk>=3.0a2',
         'scikit-learn>=0.14',
-        'pandas'],
+        'pandas',
+        'fcache'],
     tests_require = ['nose>=1.0'],
     # package_data = {
     #     # If any package contains *.txt or *.rst files, include them:
@@ -26,7 +27,7 @@ setup(
     # metadata for upload to PyPI
     author = "Alejandro Pulver",
     author_email = "alepulver@gmail.com",
-    description = "This is an Example Package",
+    description = "Learn and predict book authors from words using supervised learning",
     license = "BSD",
     keywords = "",
     url = "https://github.com/alepulver/tp-final-incc",

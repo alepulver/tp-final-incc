@@ -1,11 +1,34 @@
 from collections import Counter, defaultdict
 import math
 import book_classification as bc
+import fcache
 
 
 class Extractor:
     def extract_from(self, book):
         raise NotImplementedError()
+
+
+def default_cache():
+    return fcache.Cache("features", "books_classification")
+
+
+class CachedExtractor(Extractor):
+    def __init__(self, extractor, cache=default_cache()):
+        self._extractor = extractor
+        self._cache = cache
+
+    def extract_from(self, book):
+        element = bc.digest(repr((self._extractor.uuid(), book.uuid())))
+        try:
+            result = self._cache.get(element)
+            #print('reusing %s' % repr(element))
+            return result
+        except KeyError:
+            #print('calculating %s' % repr(element))
+            result = self._extractor.extract_from(book)
+            self._cache.set(element, result)
+            return result
 
 
 class VocabulariesExtractor(Extractor):
@@ -17,6 +40,10 @@ class VocabulariesExtractor(Extractor):
         for token in self._tokenizer.tokens_from(book):
             data[token] = True
         return bc.TokenVocabularies(self, data)
+
+    def uuid(self):
+        text = "%s(%s)" % (self.__class__.__name__, self._tokenizer.uuid())
+        return bc.digest(text)
 
 
 class FrequenciesExtractor(Extractor):
@@ -33,6 +60,10 @@ class FrequenciesExtractor(Extractor):
             entries[token] /= total
         return bc.TokenFrequencies(self, entries, total)
 
+    def uuid(self):
+        text = "%s(%s)" % (self.__class__.__name__, self._tokenizer.uuid())
+        return bc.digest(text)
+
 
 class SeriesExtractor(Extractor):
     def __init__(self, tokenizer):
@@ -45,6 +76,10 @@ class SeriesExtractor(Extractor):
             series[token].append(index)
             total_tokens += 1
         return bc.TokenSeries(self, series, total_tokens)
+
+    def uuid(self):
+        text = "%s(%s)" % (self.__class__.__name__, self._tokenizer.uuid())
+        return bc.digest(text)
 
 
 class EntropiesExtractor(Extractor):
@@ -69,8 +104,9 @@ class EntropiesExtractor(Extractor):
 
         return bc.TokenEntropies(self, sum_freqs, sum_freqs_log, total)
 
-    def features_for_vocabulary(self, vocabulary):
-        return vocabulary
+    def uuid(self):
+        text = "%s(%s,%s)" % (self.__class__.__name__, self._tokenizer.uuid(), self._grouper.uuid())
+        return bc.digest(text)
 
 
 class PairwiseAssociationExtractor(Extractor):
@@ -83,10 +119,19 @@ class PairwiseAssociationExtractor(Extractor):
         entries = Counter()
         total = 0
 
-        center = len(self._weights) // 2 + len(self._weights) % 2
-        for words in self._grouper.parts_from(self._tokenizer.tokens_from(book)):
+        token_stream = self._tokenizer.tokens_from(book)
+        for words in self._grouper.parts_from(token_stream):
             for k, w in zip(words, self._weights):
+                center = len(words) // 2
                 entries[(words[center], k)] += w
                 total += 1
 
+        for k, v in entries.items():
+            entries[k] = v / total
+
         return bc.TokenPairwiseAssociation(self, entries, total)
+
+    def uuid(self):
+        text = "%s(%s)" % (self.__class__.__name__, self._tokenizer.uuid(), self._grouper.uuid(), bc.digest(repr(weights)))
+        return bc.digest(text)
+

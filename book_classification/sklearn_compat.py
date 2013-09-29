@@ -1,6 +1,14 @@
 import book_classification as bc
 
 
+class DummyTransformer:
+    def fit(self, data):
+        return self
+
+    def transform(self, data):
+        return data
+
+
 class SklExtractor:
     def __init__(self, extractor):
         self._extractor = extractor

@@ -2,6 +2,7 @@ import book_classification as bc
 from scipy import sparse
 from functools import reduce
 from collections import defaultdict
+import multiprocessing
 
 
 class CollectionFeatures:
@@ -26,7 +27,42 @@ class CollectionFeatures:
         return self.__class__(self._collection, self._collection_extractor, features_by_book)
 
 
+class ExtractorClosure:
+    def __init__(self, extractor):
+        self._extractor = extractor
+
+    def __call__(self, book):
+        return self._extractor.extract_from(book)
+
+
 class CollectionFeaturesExtractor:
+    def __init__(self, extractor):
+        self._extractor = extractor
+
+    def extract_from(self, collection):
+        all_books = list(collection.books())
+        pool = multiprocessing.Pool()
+
+        func = ExtractorClosure(self._extractor)
+        all_features = pool.map(func, all_books)
+
+        result = {}
+        for book, features in zip(all_books, all_features):
+            result[book] = features
+        return CollectionFeatures(collection, self, result)
+
+    def encoder_for(self, collection):
+        vocabulary = set()
+        features = self.extract_from(collection)
+
+        for book in features.collection().books():
+            vocabulary.update(features.by_book(book).keys())
+
+        encoder = FeaturesEncoder(vocabulary)
+        return CollectionFeaturesEncoder(encoder)
+
+
+class SerialCollectionFeaturesExtractor:
     def __init__(self, extractor):
         self._extractor = extractor
 
@@ -37,9 +73,12 @@ class CollectionFeaturesExtractor:
         return CollectionFeatures(collection, self, result)
 
     def encoder_for(self, collection):
-        vocabulary_extractor = bc.VocabulariesExtractor(self._extractor._tokenizer)
-        vocabulary = bc.CollectionHierarchialFeatures.from_book_collection(
-            collection, vocabulary_extractor).total().keys()
+        vocabulary = set()
+        features = self.extract_from(collection)
+
+        for book in features.collection().books():
+            vocabulary.update(features.by_book(book).keys())
+
         encoder = FeaturesEncoder(vocabulary)
         return CollectionFeaturesEncoder(encoder)
 
@@ -100,32 +139,36 @@ class FeaturesEncoder:
         self._numeric_indexer = bc.NumericIndexer(self._vocabulary)
 
     def encode(self, features):
-        for k,v in features.items():
+        for k, v in features.items():
             if self._numeric_indexer.can_encode(k):
                 yield self._numeric_indexer.encode(k), v
 
     def decode(self, items):
-        for k,v in items:
+        for k, v in items:
             yield self._numeric_indexer.decode(k), v
 
-    def vocabulary_size(self):
-        return len(self._numeric_indexer)
+    def vocabulary(self):
+        return self._numeric_indexer.vocabulary()
 
 
 class CollectionFeaturesEncoder:
-    def __init__(self, features_encoder):
-        self._features_encoder = features_encoder
+    def __init__(self, encoder):
+        self._encoder = encoder
 
-    def encode(self, collection_features):
-        num_rows = len(collection_features.collection())
-        num_cols = self._features_encoder.vocabulary_size()
+    def encode(self, features):
+        num_rows = len(features.collection())
+        num_cols = len(self._encoder.vocabulary())
         matrix = sparse.dok_matrix((num_rows, num_cols))
-        for i,book in enumerate(collection_features.collection().books()):
-            features = collection_features.by_book(book)
-            for j,v in self._features_encoder.encode(features):
+
+        for i, book in enumerate(features.collection().books()):
+            book_features = features.by_book(book)
+            for j, v in self._encoder.encode(book_features):
                 matrix[i, j] = v
 
-        return matrix
+        return matrix.tocsc()
+
+    def vocabulary(self):
+        return self._features_encoder.vocabulary()
 
 
 class CollectionFeaturesMatrixExtractor:

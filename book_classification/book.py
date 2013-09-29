@@ -1,6 +1,7 @@
 import re
 import zipfile
 import gzip
+import book_classification as bc
 
 
 class DummyBook:
@@ -17,6 +18,8 @@ class Book:
         self._title = title
         self._contents = contents
         self._source = source
+        # TODO: migrate existing db, adding hash
+        #self._hash = hash(contents)
 
     def author(self):
         return self._author
@@ -29,6 +32,11 @@ class Book:
 
     def source(self):
         return self._source
+
+    def uuid(self):
+        #text = '%s(%s)' % (self.__class__.__name__, bc.digest(self._contents))
+        text = '%s(%s,%s,%s)' % (self.__class__.__name__, self.author(), self.title(), self.source())
+        return bc.digest(text)
 
     @staticmethod
     def from_str(string, source=None):
