@@ -27,12 +27,20 @@ easy_install pip
 pip install -r requirements.txt
 ```
 
+To use the notebooks:
+
+```
+cd notebooks
+ln -s ../books_classification .
+ipython3 notebook --cache-size=0 --pylab inline
+# then a window should be opened in a web browser
+```
+
 # TODO
 
 ## Must
 
-- add isomap graphic showing plane distances estimate and colors for each author (maybe add mesh to fill background with classiffication space)
-- try finding which words (component sets) separate authors by looking at non-negative matrix factorization components, or factor analysis
+- analyze classification space, draw mesh, compare with frequencies
 
 ## Later
 
