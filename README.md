@@ -46,13 +46,13 @@ ipython3 notebook --cache-size=0 --pylab inline
 
 - use configurable decorators in place of tokenizers and extractors (for vocabulary, filters, cache, etc)
 - add more tests
-- try random projections and manifold learning instead of sparse SVD
+- try using word association (moving windows) to classify, and "entropified" version; not feasible without FFT?
 - profiling to speed up code
+- put all tokens continuously in memory (already hashed if necessary), so windowing is cheaper
 
 ## Maybe
-- try using word association (moving windows) to classify, and "entropified" version; not feasible without FFT?
 - finish transforming tokenizers (stemmer, lemmatizer, ...), and collapsing statistics
 - integrate extractor parameters with sklearn's grid search
-- look at exported items in namespaces, remove some and partition if needed
 - add feature aggregation support and integrate with sklearn
 - write documentation/code examples with Sphinx
+- web and DVD interface for Project Gutenberg releases

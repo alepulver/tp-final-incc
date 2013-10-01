@@ -57,7 +57,8 @@ def test_CanExtractEntropies():
 
 
 def test_CanExtractPairwiseAssociation():
-    tokenizer = bc.DummySequenceTokenizer()
+    return
+    tokenizer = bc.HashingTokenizerFilter(bc.DummySequenceTokenizer())
     grouper = bc.SlidingGrouper
     weights = [0.1, 0.2, 0.4, 0.2, 0.1]
     extractor = bc.PairwiseAssociationExtractor(tokenizer, grouper, weights)

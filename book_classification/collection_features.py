@@ -2,7 +2,6 @@ import book_classification as bc
 from scipy import sparse
 from functools import reduce
 from collections import defaultdict
-import multiprocessing
 
 
 class CollectionFeatures:
@@ -25,72 +24,6 @@ class CollectionFeatures:
                     features_by_book[book][k] = v
 
         return self.__class__(self._collection, self._collection_extractor, features_by_book)
-
-
-class ExtractorClosure:
-    def __init__(self, extractor):
-        self._extractor = extractor
-
-    def __call__(self, book):
-        return self._extractor.extract_from(book)
-
-
-class CollectionFeaturesExtractor:
-    def __init__(self, extractor):
-        self._extractor = extractor
-
-    def extract_from(self, collection):
-        all_books = list(collection.books())
-        pool = multiprocessing.Pool()
-
-        func = ExtractorClosure(self._extractor)
-        all_features = pool.map(func, all_books)
-
-        result = {}
-        for book, features in zip(all_books, all_features):
-            result[book] = features
-        return CollectionFeatures(collection, self, result)
-
-    def encoder_for(self, collection):
-        vocabulary = set()
-        features = self.extract_from(collection)
-
-        for book in features.collection().books():
-            vocabulary.update(features.by_book(book).keys())
-
-        encoder = FeaturesEncoder(vocabulary)
-        return CollectionFeaturesEncoder(encoder)
-
-
-class SerialCollectionFeaturesExtractor:
-    def __init__(self, extractor):
-        self._extractor = extractor
-
-    def extract_from(self, collection):
-        result = {}
-        for book in collection.books():
-            result[book] = self._extractor.extract_from(book)
-        return CollectionFeatures(collection, self, result)
-
-    def encoder_for(self, collection):
-        vocabulary = set()
-        features = self.extract_from(collection)
-
-        for book in features.collection().books():
-            vocabulary.update(features.by_book(book).keys())
-
-        encoder = FeaturesEncoder(vocabulary)
-        return CollectionFeaturesEncoder(encoder)
-
-
-class CollectionFeaturesFilteringExtractor:
-    def __init__(self, extractor, filter_predicate):
-        self._extractor = extractor
-        self._filter_predicate = filter_predicate
-
-    def extract_from(self, collection):
-        features = self._extractor.extract_from(collection)
-        return features.select(self._filter_predicate)
 
 
 class CollectionHierarchialFeatures:
@@ -120,17 +53,6 @@ class CollectionHierarchialFeatures:
         features_total = reduce(lambda x,y: x.combine(y), features_by_author.values())
 
         return cls(features_by_book, features_by_author, features_total)
-
-
-class CollectionHierarchialFeaturesExtractor:
-    def __init__(self, extractor):
-        self._extractor = extractor
-
-    def extract_from(self, collection):
-        return CollectionHierarchialFeatures.from_book_collection(collection, extractor)
-
-    def encoder_for(self, collection):
-        raise NotImplementedError()
 
 
 class FeaturesEncoder:
@@ -173,7 +95,7 @@ class CollectionFeaturesEncoder:
 
 class CollectionFeaturesMatrixExtractor:
     def __init__(self, extractor, base_collection):
-        self._extractor = CollectionFeaturesExtractor(extractor)
+        self._extractor = bc.CollectionFeaturesExtractor(extractor)
         self._training = base_collection
         self._encoder = self._extractor.encoder_for(self._training)
 

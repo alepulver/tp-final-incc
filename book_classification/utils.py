@@ -1,7 +1,4 @@
 import random
-import hashlib
-#from pyhashxx import hashxx
-import book_classification as bc
 
 
 class RandomContext:
@@ -14,59 +11,6 @@ class RandomContext:
 
     def __exit__(self, exc_type, exc_value, traceback):
         random.setstate(self._oldstate)
-
-
-class Grouper:
-    def parts_from(self, sequence):
-        raise NotImplementedError()
-
-
-class DummyGrouper(Grouper):
-    def parts_from(self, sequence):
-        return iter(sequence)
-
-
-class FixedGrouper(Grouper):
-    def __init__(self, parts_size):
-        self._parts_size = parts_size
-
-    def parts_from(self, sequence):
-        group = []
-        for token in sequence:
-            if len(group) >= self._parts_size:
-                yield group
-                group = []
-            group.append(token)
-        if len(group) > 0:
-            yield group
-
-    def parts_size(self):
-        return self._parts_size
-
-    def uuid(self):
-        text = "%s(%s)" % (self.__class__.__name__, self._parts_size)
-        return bc.digest(text)
-
-
-class SlidingGrouper(Grouper):
-    def __init__(self, parts_size):
-        self._parts_size = parts_size
-
-    def parts_from(self, sequence):
-        window = []
-        for element in sequence:
-            window.append(element)
-            if len(window) >= self._parts_size:
-                # need to copy because it is changed later
-                yield list(window)
-                window.pop(0)
-
-    def parts_size(self):
-        return self._parts_size
-
-    def uuid(self):
-        text = "%s(%s)" % (self.__class__.__name__, self._parts_size)
-        return bc.digest(text)
 
 
 class NumericIndexer:
@@ -100,16 +44,3 @@ class NumericIndexer:
 
     def vocabulary(self):
         return self._objects
-
-    def uuid(self):
-        text = "%s(%s)" % (self.__class__.__name__, bc.digest(repr(self._objects)))
-        return bc.digest(text)
-
-
-def digest(text):
-    result = hashlib.md5()
-    result.update(text.encode())
-    return result.hexdigest()
-
-#def digest2(text):
-#    return hashxx(text.encode(), seed=1)

@@ -2,6 +2,7 @@ from collections import Counter, defaultdict
 import math
 import book_classification as bc
 import fcache
+import numpy
 
 
 class Extractor:
@@ -110,25 +111,27 @@ class EntropiesExtractor(Extractor):
 
 
 class PairwiseAssociationExtractor(Extractor):
-    def __init__(self, tokenizer, grouper, weights):
+    def __init__(self, tokenizer, grouper, weights, num_features=2**16):
         self._tokenizer = tokenizer
         self._grouper = grouper(len(weights))
         self._weights = weights
+        self._num_features = num_features
 
     def extract_from(self, book):
-        entries = Counter()
+        entries = numpy.zeros(self._num_features)
         total = 0
 
         token_stream = self._tokenizer.tokens_from(book)
         for words in self._grouper.parts_from(token_stream):
-            for k, w in zip(words, self._weights):
-                center = len(words) // 2
-                entries[(words[center], k)] += w
+            words_array = numpy.array(words)
+            center = words_array[len(words) // 2]
+            indices = (center * 1332711 + words_array) % self._num_features
+
+            for i in range(len(indices)):
+                entries[indices[i]] += words_array[i]
                 total += 1
 
-        for k, v in entries.items():
-            entries[k] = v / total
-
+        entries /= total
         return bc.TokenPairwiseAssociation(self, entries, total)
 
     def uuid(self):

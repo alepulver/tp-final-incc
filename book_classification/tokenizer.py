@@ -1,25 +1,10 @@
 import nltk
-import book_classification as bc
+from pyhashxx import hashxx
 
 
 class Tokenizer:
     def tokens_from(self, book):
         raise NotImplementedError()
-
-
-class MixinTokenizerEvents:
-    def add_listener(self, listener):
-        self._listeners.add(listener)
-
-    def remove_listener(self, listener):
-        self._listeners.remove(listener)
-
-    def broadcast(self, message):
-        for listener in self._listeners:
-            try:
-                message(listener)
-            except:
-                pass
 
 
 class DummyBookTokenizer(Tokenizer):
@@ -40,9 +25,6 @@ class BasicTokenizer(Tokenizer):
         tokens = nltk.wordpunct_tokenize(book.contents().lower())
         return filter(is_word, tokens)
 
-    def uuid(self):
-        return bc.digest(self.__class__.__name__)
-
 
 class FilteringTokenizer(Tokenizer):
     def __init__(self, tokenizer, vocabulary):
@@ -50,111 +32,47 @@ class FilteringTokenizer(Tokenizer):
         self._vocabulary = set(vocabulary)
 
     def tokens_from(self, book):
-        return filter(lambda x: x in self._vocabulary, self._tokenizer.tokens_from(book))
+        func = lambda x: x in self._vocabulary
+        tokens = self._tokenizer.tokens_from(book)
+        return filter(func, tokens)
 
     def vocabulary(self):
         return self._vocabulary
 
-    # FIXME: use sorted list, set order not determined!
-    def uuid(self):
-        text = "%s(%s)" % (self.__class__.__name__, bc.digest(self.vocabulary()))
-        return bc.digest(text)
 
-
-class CollapsingFilteringTokenizer(Tokenizer):
-    def __init__(self, tokenizer, vocabulary):
+class TransformingTokenizer(Tokenizer):
+    def __init__(self, tokenizer, transform):
         self._tokenizer = tokenizer
-        self._vocabulary = set(vocabulary)
-        self._null = '<<<many words removed>>>'
-        assert(self._null not in self._vocabulary)
-
-    def tokens_from(self, book):
-        def convert(token):
-            if token in self._vocabulary:
-                return token
-            else:
-                return self._null
-
-        return map(convert, self._tokenizer.tokens_from(book))
-
-    def vocabulary(self):
-        return self._vocabulary.union(set([self._null]))
-
-    def __hash__(self):
-        text = "%s(%s)" % (self.__class__.__name__, hash(self.vocabulary()))
-        return hash(text)
-
-
-# FIXME: merge with previous tokenizer
-class CollapsingTokenizer(MixinTokenizerEvents, Tokenizer):
-    def __init__(self, tokenizer, vocabulary, fillvalue):
-        self._tokenizer = tokenizer
-        self._vocabulary = set(vocabulary)
-        self._fillvalue = fillvalue
-        self._listeners = set()
+        self._transform = transform
 
     def tokens_from(self, book):
         for token in self._tokenizer.tokens_from(book):
-            if token in self._vocabulary:
-                self.broadcast(lambda x: x.allow(token))
-                yield token
-            elif token == self._fillvalue:
-                raise Exception('fill value occurred at input')
-            else:
-                self.broadcast(lambda x: x.convert(token, self._fillvalue))
-                yield self._fillvalue
-
-    def vocabulary(self):
-        return self._vocabulary.union(set([self._fillvalue]))
-
-    def __hash__(self):
-        text = "%s(%s)" % (self.__class__.__name__, hash(self.vocabulary()))
-        return hash(text)
-
-
-class StemmingTokenizer(MixinTokenizerEvents, Tokenizer):
-    def __init__(self, tokenizer, stemmer):
-        self._tokenizer = tokenizer
-        self._stemmer = stemmer
-        self._listeners = set()
-
-    def tokens_from(self, book):
-        for token in self._tokenizer.tokens_from(book):
-            result = stemmer(token)
-            if token == result:
-                self.broadcast(lambda x: x.allow(token))
-            else:
-                self.broadcast(lambda x: x.convert(token, self._fillvalue))
-
+            result = self._transform(token)
             yield result
 
 
-class TokenizerListener:
-    def allow(self, token):
-        raise NotImplementedError()
-
-    def discard(self, token):
-        raise NotImplementedError()
-
-    def convert(self, token_in, token_out):
-        raise NotImplementedError()
-
-
-# ..., stores each word that it outputs and can answer it
-# ..., stores how many words were collapsed into one and how
-class TokenizerEventAnalyzer(TokenizerListener):
-    def __init__(self, tokenizer):
+class CollapsingTokenizer(Tokenizer):
+    def __init__(self, tokenizer, vocabulary, null='<<<many words removed>>>'):
         self._tokenizer = tokenizer
-        self._tokenizer.add_listener(self)
+        self._vocabulary = set(vocabulary)
+        self._null = null
 
-    def allow(self, token):
-        pass
+        assert(self._null not in self._vocabulary)
 
-    def convert(self, token_in, token_out):
-        pass
+    def tokens_from(self, book):
+        convert = lambda x: x if x in self._vocabulary else self._null
+        return map(convert, self._tokenizer.tokens_from(book))
 
-    def discard(self, token):
-        pass
+    def vocabulary(self):
+        return self._vocabulary
 
-    def close(self):
-        self._tokenizer.remove_listener(self)
+
+class HashingTokenizerFilter:
+    def __init__(self, tokenizer, seed=1234):
+        self._tokenizer = tokenizer
+        self._seed = seed
+
+    def tokens_from(self, book):
+        tokens = self._tokenizer.tokens_from(book)
+        func = lambda x: hashxx(x.encode(), seed=self._seed)
+        return map(func, tokens)
