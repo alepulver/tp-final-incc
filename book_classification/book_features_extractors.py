@@ -1,35 +1,15 @@
 from collections import Counter, defaultdict
 import math
 import book_classification as bc
-import fcache
 import numpy
+import pyximport; pyximport.install()
+from . import optimized
+from scipy import sparse
 
 
 class Extractor:
     def extract_from(self, book):
         raise NotImplementedError()
-
-
-def default_cache():
-    return fcache.Cache("features", "books_classification")
-
-
-class CachedExtractor(Extractor):
-    def __init__(self, extractor, cache=default_cache()):
-        self._extractor = extractor
-        self._cache = cache
-
-    def extract_from(self, book):
-        element = bc.digest(repr((self._extractor.uuid(), book.uuid())))
-        try:
-            result = self._cache.get(element)
-            #print('reusing %s' % repr(element))
-            return result
-        except KeyError:
-            #print('calculating %s' % repr(element))
-            result = self._extractor.extract_from(book)
-            self._cache.set(element, result)
-            return result
 
 
 class VocabulariesExtractor(Extractor):
@@ -123,13 +103,18 @@ class PairwiseAssociationExtractor(Extractor):
 
         token_stream = self._tokenizer.tokens_from(book)
         for words in self._grouper.parts_from(token_stream):
-            words_array = numpy.array(words)
-            center = words_array[len(words) // 2]
-            indices = (center * 1332711 + words_array) % self._num_features
+            center = words[len(words) // 2]
 
-            for i in range(len(indices)):
-                entries[indices[i]] += words_array[i]
-                total += 1
+            # See http://en.wikipedia.org/wiki/Linear_congruential_generator#Parameters_in_common_use
+            indices = (center*1664525 + words) % len(entries)
+
+            # XXX: WRONG! Indexing uses only one of multiple occurrences of the same index
+            #entries[indices] += self._weights
+
+            optimized.addmult_indexed(entries, indices, self._weights)
+
+            #total += len(indices)
+            total += 1
 
         entries /= total
         return bc.TokenPairwiseAssociation(self, entries, total)
@@ -138,3 +123,65 @@ class PairwiseAssociationExtractor(Extractor):
         text = "%s(%s)" % (self.__class__.__name__, self._tokenizer.uuid(), self._grouper.uuid(), bc.digest(repr(weights)))
         return bc.digest(text)
 
+
+class PairwiseEntropyAssociationExtractor(Extractor):
+    def __init__(self, tokenizer, grouper, weights, num_features=2**20):
+        self._tokenizer = tokenizer
+        self._grouper = grouper(len(weights))
+        self._weights = weights
+        self._num_features = num_features
+
+    def extract_from(self, book):
+        # XXX: maybe we should also multiply "center" by something,
+        # if we want a result closer to "mutual information"
+
+        total_entries = sparse.dok_matrix((1, self._num_features))
+        total_count = 0
+
+        token_stream = self._tokenizer.tokens_from(book)
+        for words in self._grouper.parts_from(token_stream):
+            center = words[len(words) // 2]
+
+            indices = (center*1664525 + words) % total_entries.shape[1]
+            partial_count = 1
+            partial_entries = sparse.dok_matrix(total_entries.shape)
+            for i in range(len(indices)):
+                partial_entries[indices[i]] += self._weights[i]
+
+            total_entries += partial_entries*numpy.log(partial_entries)
+            total_count += partial_count
+
+        total_entries /= total_count
+
+        return bc.TokenPairwiseAssociation(self, total_entries, total_count)
+
+
+# XXX: this is symmetric, maybe it doesn't make sense?
+# XXX 2: delete this!
+class PairwiseAssociationEntropyExtractor(Extractor):
+    def __init__(self, tokenizer, grouper, weights, num_features=2**20):
+        self._tokenizer = tokenizer
+        self._grouper = grouper(len(weights))
+        self._weights = weights
+        self._num_features = num_features
+
+    def extract_from(self, book):
+        total_entries = sparse.dok_matrix((1, self._num_features))
+        total_count = 0
+
+        token_stream = self._tokenizer.tokens_from(book)
+        for words in self._grouper.parts_from(token_stream):
+            center = words[len(words) // 2]
+
+            indices = (center*1664525 + words) % total_entries.shape[1]
+            partial_count = 1
+            partial_entries = sparse.dok_matrix(total_entries.shape)
+            for i in range(len(indices)):
+                partial_entries[indices[i]] += self._weights[i]
+
+            total_entries += numpy.log(partial_entries - partial_entries[indices[len(words) // 2]])
+            total_count += partial_count
+
+        total_entries /= total_count
+
+        return bc.TokenPairwiseAssociation(self, total_entries, total_count)

@@ -59,6 +59,7 @@ class NumericSlidingGrouper(Grouper):
         assert(len(vector) >= self._parts_size)
         for i in range(len(vector) - self._parts_size):
             window = numpy.array(vector[i:i+self._parts_size])
+            #window = vector[i:i+self._parts_size]
             yield window
 
     def parts_size(self):

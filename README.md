@@ -40,15 +40,21 @@ ipython3 notebook --cache-size=0 --pylab inline
 
 ## Must
 
+- add cache; cross validation turns into a waste of resources
 - analyze classification space, draw mesh, compare with frequencies
+
+- convert hashed features to sparse, or use sklearn's implementation
+- randomly subtract features according to hash, to avoid noise build-up
+- 500 random accesses per window are too much, try sampling around pivot instead of counting all
+- selective sampling: after obtaining entropies and relationship with frequency, don't include undesired words in any pair
+- if GPU cores can access memory independently at the same time, it may be a good idea to try
+- analyze sparsity of current encoding and hashes
+- estimate hash collisions
 
 ## Later
 
 - use configurable decorators in place of tokenizers and extractors (for vocabulary, filters, cache, etc)
 - add more tests
-- try using word association (moving windows) to classify, and "entropified" version; not feasible without FFT?
-- profiling to speed up code
-- put all tokens continuously in memory (already hashed if necessary), so windowing is cheaper
 
 ## Maybe
 - finish transforming tokenizers (stemmer, lemmatizer, ...), and collapsing statistics

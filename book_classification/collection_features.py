@@ -2,6 +2,7 @@ import book_classification as bc
 from scipy import sparse
 from functools import reduce
 from collections import defaultdict
+import numpy
 
 
 class CollectionFeatures:
@@ -53,6 +54,17 @@ class CollectionHierarchialFeatures:
         features_total = reduce(lambda x,y: x.combine(y), features_by_author.values())
 
         return cls(features_by_book, features_by_author, features_total)
+
+
+class DummyCollectionFeaturesEncoder:
+    def encode(self, features):
+        print(len(features.collection()))
+        rows = list(features.by_book(b) for b in features.collection().books())
+        matrix = numpy.matrix(rows)
+        print("matrix of %s, with %s/%s (%s%%) non-zeroes" %
+            (matrix.shape, numpy.count_nonzero(matrix), matrix.shape[0]*matrix.shape[1],
+             100 * numpy.count_nonzero(matrix) / (matrix.shape[0]*matrix.shape[1])))
+        return matrix
 
 
 class FeaturesEncoder:

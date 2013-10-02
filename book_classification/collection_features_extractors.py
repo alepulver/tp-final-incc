@@ -13,6 +13,10 @@ class SerialCollectionFeaturesExtractor:
         return bc.CollectionFeatures(collection, self, result)
 
     def encoder_for(self, collection):
+        print(self._extractor)
+        if isinstance(self._extractor, bc.PairwiseAssociationExtractor):
+            return bc.DummyCollectionFeaturesEncoder()
+
         vocabulary = set()
         features = self.extract_from(collection)
 

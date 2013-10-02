@@ -15,7 +15,8 @@ setup(
         'nltk>=3.0a2',
         'scikit-learn>=0.14',
         'pandas',
-        'pyhashxx'],
+        'pyhashxx',
+        'cython'],
     tests_require = ['nose>=1.0'],
     # package_data = {
     #     # If any package contains *.txt or *.rst files, include them:
