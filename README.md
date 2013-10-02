@@ -30,10 +30,14 @@ pip install -r requirements.txt
 To use the notebooks:
 
 ```
+# install IPython
+pip install ipython pyzmq jinja2 tornado
+
 cd notebooks
 ln -s ../books_classification .
+
+# this should open a window in the browser
 ipython3 notebook --cache-size=0 --pylab inline
-# then a window should be opened in a web browser
 ```
 
 # TODO
