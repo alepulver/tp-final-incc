@@ -98,22 +98,12 @@ class PairwiseAssociationExtractor(Extractor):
         self._num_features = num_features
 
     def extract_from(self, book):
-        entries = numpy.zeros(self._num_features)
+        entries = numpy.zeros(self._num_features, dtype=self._weights.dtype)
         total = 0
 
         token_stream = self._tokenizer.tokens_from(book)
         for words in self._grouper.parts_from(token_stream):
-            center = words[len(words) // 2]
-
-            # See http://en.wikipedia.org/wiki/Linear_congruential_generator#Parameters_in_common_use
-            indices = (center*1664525 + words) % len(entries)
-
-            # XXX: WRONG! Indexing uses only one of multiple occurrences of the same index
-            #entries[indices] += self._weights
-
-            optimized.addmult_indexed(entries, indices, self._weights)
-
-            #total += len(indices)
+            optimized.pairwise_association_window(entries, words, self._weights)
             total += 1
 
         entries /= total
@@ -124,7 +114,7 @@ class PairwiseAssociationExtractor(Extractor):
         return bc.digest(text)
 
 
-class PairwiseEntropyAssociationExtractor(Extractor):
+class PairwiseEntropyExtractor(Extractor):
     def __init__(self, tokenizer, grouper, weights, num_features=2**20):
         self._tokenizer = tokenizer
         self._grouper = grouper(len(weights))
@@ -135,52 +125,18 @@ class PairwiseEntropyAssociationExtractor(Extractor):
         # XXX: maybe we should also multiply "center" by something,
         # if we want a result closer to "mutual information"
 
-        total_entries = sparse.dok_matrix((1, self._num_features))
+        #total_entries = sparse.dok_matrix((1, self._num_features))
+        total_entries = numpy.zeros(self._num_features)
         total_count = 0
 
         token_stream = self._tokenizer.tokens_from(book)
         for words in self._grouper.parts_from(token_stream):
-            center = words[len(words) // 2]
+            #center = words[len(words) // 2]
 
-            indices = (center*1664525 + words) % total_entries.shape[1]
-            partial_count = 1
-            partial_entries = sparse.dok_matrix(total_entries.shape)
-            for i in range(len(indices)):
-                partial_entries[indices[i]] += self._weights[i]
+            #indices = (center*1664525 + words) % total_entries.shape[1]
+            optimized.pairwise_entropy_window(total_entries, words, self._weights)
 
-            total_entries += partial_entries*numpy.log(partial_entries)
-            total_count += partial_count
-
-        total_entries /= total_count
-
-        return bc.TokenPairwiseAssociation(self, total_entries, total_count)
-
-
-# XXX: this is symmetric, maybe it doesn't make sense?
-# XXX 2: delete this!
-class PairwiseAssociationEntropyExtractor(Extractor):
-    def __init__(self, tokenizer, grouper, weights, num_features=2**20):
-        self._tokenizer = tokenizer
-        self._grouper = grouper(len(weights))
-        self._weights = weights
-        self._num_features = num_features
-
-    def extract_from(self, book):
-        total_entries = sparse.dok_matrix((1, self._num_features))
-        total_count = 0
-
-        token_stream = self._tokenizer.tokens_from(book)
-        for words in self._grouper.parts_from(token_stream):
-            center = words[len(words) // 2]
-
-            indices = (center*1664525 + words) % total_entries.shape[1]
-            partial_count = 1
-            partial_entries = sparse.dok_matrix(total_entries.shape)
-            for i in range(len(indices)):
-                partial_entries[indices[i]] += self._weights[i]
-
-            total_entries += numpy.log(partial_entries - partial_entries[indices[len(words) // 2]])
-            total_count += partial_count
+            total_count += 1
 
         total_entries /= total_count
 

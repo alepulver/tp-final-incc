@@ -13,8 +13,9 @@ class SerialCollectionFeaturesExtractor:
         return bc.CollectionFeatures(collection, self, result)
 
     def encoder_for(self, collection):
-        print(self._extractor)
         if isinstance(self._extractor, bc.PairwiseAssociationExtractor):
+            return bc.DummyCollectionFeaturesEncoder()
+        if isinstance(self._extractor, bc.PairwiseEntropyExtractor):
             return bc.DummyCollectionFeaturesEncoder()
 
         vocabulary = set()

@@ -50,6 +50,24 @@ class SlidingGrouper(Grouper):
         return self._parts_size
 
 
+class NumericFixedGrouper(Grouper):
+    def __init__(self, parts_size):
+        self._parts_size = parts_size
+
+    def parts_from(self, sequence):
+        vector = numpy.array(list(sequence))
+        assert(len(vector) >= self._parts_size)
+        for i in range(len(vector) // self._parts_size):
+            #window = numpy.array(vector[i:i+self._parts_size])
+            start = i * self._parts_size
+            end = i + self._parts_size
+            window = vector[start:end]
+            yield window
+
+    def parts_size(self):
+        return self._parts_size
+
+
 class NumericSlidingGrouper(Grouper):
     def __init__(self, parts_size):
         self._parts_size = parts_size
@@ -58,8 +76,8 @@ class NumericSlidingGrouper(Grouper):
         vector = numpy.array(list(sequence))
         assert(len(vector) >= self._parts_size)
         for i in range(len(vector) - self._parts_size):
-            window = numpy.array(vector[i:i+self._parts_size])
-            #window = vector[i:i+self._parts_size]
+            #window = numpy.array(vector[i:i+self._parts_size])
+            window = vector[i:i+self._parts_size]
             yield window
 
     def parts_size(self):

@@ -3,6 +3,7 @@ from scipy import sparse
 from functools import reduce
 from collections import defaultdict
 import numpy
+from scipy import sparse
 
 
 class CollectionFeatures:
@@ -59,12 +60,24 @@ class CollectionHierarchialFeatures:
 class DummyCollectionFeaturesEncoder:
     def encode(self, features):
         print(len(features.collection()))
-        rows = list(features.by_book(b) for b in features.collection().books())
-        matrix = numpy.matrix(rows)
+        rows = list(features.by_book(b)._entries for b in features.collection().books())
+
+        matrix = sparse.vstack([sparse.csr_matrix(r) for r in rows], format="csr")
+        print(type(matrix))        
         print("matrix of %s, with %s/%s (%s%%) non-zeroes" %
-            (matrix.shape, numpy.count_nonzero(matrix), matrix.shape[0]*matrix.shape[1],
-             100 * numpy.count_nonzero(matrix) / (matrix.shape[0]*matrix.shape[1])))
+            (matrix.shape, matrix.nnz, matrix.shape[0]*matrix.shape[1],
+             100 * matrix.nnz / (matrix.shape[0]*matrix.shape[1])))
+
+        #matrix = numpy.vstack(rows)
+        #print("matrix of %s, with %s/%s (%s%%) non-zeroes" %
+        #    (matrix.shape, numpy.count_nonzero(matrix), matrix.shape[0]*matrix.shape[1],
+        #     100 * numpy.count_nonzero(matrix) / (matrix.shape[0]*matrix.shape[1])))
         return matrix
+
+
+class SparseMatrixRowFeaturesEncoder:
+    def encode(self, features):
+        return sparse.vstack(list(features))
 
 
 class FeaturesEncoder:
