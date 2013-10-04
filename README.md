@@ -46,13 +46,6 @@ ipython3 notebook --cache-size=0 --pylab inline
 
 - draw authors in projected space (hierarchial features by author)
 - add cache; cross validation turns into a waste of resources
-- analyze classification space, draw mesh, compare with frequencies
-
-- increase window
-  - 500 random accesses per window are too much, try sampling around pivot instead of counting all
-  - selective sampling: after obtaining entropies and relationship with frequency, don't include undesired words in any pair
-  - try moving window, and SVD in GPU from python
-
 - analyze sparsity of feature encoding
 - estimate hash collisions
 

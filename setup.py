@@ -1,7 +1,14 @@
 from ez_setup import use_setuptools
 use_setuptools()
 
-from setuptools import setup, find_packages
+from setuptools import setup, find_packages, extension
+from Cython.Distutils import build_ext
+
+ext_sources = ["book_classification/fast_code.cpp", "book_classification/fast_code_wrap.pyx"]
+ext_modules = [
+    extension.Extension("fast_code", ext_sources, extra_compile_args=['-O3', '-std=c++11'])
+]
+
 setup(
     name = "Book Classification",
     version = "0.1",
@@ -34,4 +41,7 @@ setup(
     url = "https://github.com/alepulver/tp-final-incc",
 
     # could also include long_description, download_url, classifiers, etc.
+
+    cmdclass = {"build_ext": build_ext},
+    ext_modules = ext_modules,
 )

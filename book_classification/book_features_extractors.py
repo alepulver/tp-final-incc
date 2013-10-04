@@ -5,6 +5,7 @@ import numpy
 import pyximport; pyximport.install()
 from . import optimized
 from scipy import sparse
+from . import fast_code
 
 
 class Extractor:
@@ -134,7 +135,8 @@ class PairwiseEntropyExtractor(Extractor):
             #center = words[len(words) // 2]
 
             #indices = (center*1664525 + words) % total_entries.shape[1]
-            optimized.pairwise_entropy_window(total_entries, words, self._weights)
+            #optimized.pairwise_entropy_window(total_entries, words, self._weights)
+            fast_code.pairwise_entropy_window(total_entries, words, self._weights)
 
             total_count += 1
 
