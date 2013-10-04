@@ -14,5 +14,3 @@ pandas
 -e git://github.com/tsroten/fcache.git#egg=fcache
 
 coverage
-
-pyhashxx

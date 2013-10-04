@@ -44,19 +44,19 @@ ipython3 notebook --cache-size=0 --pylab inline
 
 ## Must
 
+- plot accuracy in X (training number, absolute) vs Y (number of authors), with color or surface
 - draw authors in projected space (hierarchial features by author)
-- add cache; cross validation turns into a waste of resources
-- analyze classification space, draw mesh, compare with frequencies
+- add cache, or at least a simple wrapper for cross validation; maybe with context persisted at exit, with all parameters?
+- analyze classification space with fewer authors, draw mesh, compare with frequencies
 - analyze sparsity of feature encoding
 
 ## Later
-
-- use configurable decorators in place of tokenizers and extractors (for vocabulary, filters, cache, etc)
 - add more tests
+- faster interface for importing books and storing calculated data (PyTables, HDF5, etc)
+- web and DVD interface for Project Gutenberg releases
 
 ## Maybe
-- finish transforming tokenizers (stemmer, lemmatizer, ...), and collapsing statistics
 - integrate extractor parameters with sklearn's grid search
-- add feature aggregation support and integrate with sklearn
 - write documentation/code examples with Sphinx
-- web and DVD interface for Project Gutenberg releases
+- bring back support for word associations, from branch "window_optimizations", integrate and try
+- use doulbe dispatch and inversion of control instead of decorators to deal with extraction and encoding
