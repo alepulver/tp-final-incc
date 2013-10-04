@@ -12,7 +12,7 @@ public:
 };
 
 extern "C" void pairwise_entropies_window(
-  double *output, long output_size,
+  double *output_sum, double *output_sum_log, long output_size,
   const long *words, long words_size,
   const double *weights) {
 	
@@ -29,6 +29,7 @@ extern "C" void pairwise_entropies_window(
     for (auto it = temp.begin(); it != temp.end(); ++it) {
         //std::cerr << it->first << ' ' << it->second << '\n';
         const long index = (center*1664525 + it->first) % output_size;
-        output[index] += it->second * std::log(it->second);
+        output_sum[index] += it->second;
+        output_sum_log[index] += it->second * std::log(it->second);
     }
 }

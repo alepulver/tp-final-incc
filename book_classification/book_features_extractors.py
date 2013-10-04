@@ -127,8 +127,9 @@ class PairwiseEntropyExtractor(Extractor):
         # if we want a result closer to "mutual information"
 
         #total_entries = sparse.dok_matrix((1, self._num_features))
-        total_entries = numpy.zeros(self._num_features)
-        total_count = 0
+        entries_sum = numpy.zeros(self._num_features)
+        entries_sum_log = numpy.zeros(self._num_features)
+        count = 0
 
         token_stream = self._tokenizer.tokens_from(book)
         for words in self._grouper.parts_from(token_stream):
@@ -136,10 +137,11 @@ class PairwiseEntropyExtractor(Extractor):
 
             #indices = (center*1664525 + words) % total_entries.shape[1]
             #optimized.pairwise_entropy_window(total_entries, words, self._weights)
-            fast_code.pairwise_entropy_window(total_entries, words, self._weights)
+            fast_code.pairwise_entropy_window(entries_sum, entries_sum_log, words, self._weights)
 
-            total_count += 1
+            count += 1
 
-        total_entries /= total_count
+        entries = (-1 / (math.log(count) * entries_sum + 10**-300)) * (entries_sum_log - entries_sum*entries_sum_log)
+        #entries /= total_count
 
-        return bc.TokenPairwiseAssociation(self, total_entries, total_count)
+        return bc.TokenPairwiseAssociation(self, entries, count)
