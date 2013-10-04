@@ -4,7 +4,7 @@ use_setuptools()
 from setuptools import setup, find_packages
 setup(
     name = "Book Classification",
-    version = "0.1",
+    version = "0.2",
     packages = find_packages(),
     #scripts = ['say_hello.py'],
 
@@ -14,9 +14,7 @@ setup(
         'docutils>=0.3',
         'nltk>=3.0a2',
         'scikit-learn>=0.14',
-        'pandas',
-        'pyhashxx',
-        'cython'],
+        'pandas'],
     tests_require = ['nose>=1.0'],
     # package_data = {
     #     # If any package contains *.txt or *.rst files, include them:

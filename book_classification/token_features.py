@@ -145,29 +145,3 @@ class TokenEntropies(MixinFeaturesDict, Features):
         # FIXME: remove word or return 1 instead of adjusting; add test
         coeff = -1 / (math.log(self._total) * self._sum_freqs[key] + 10**-300)
         return coeff * (self._sum_freqs_log[key] - self._sum_freqs[key]*math.log(self._sum_freqs[key]))
-
-
-class TokenPairwiseAssociation(MixinFeaturesDict, Features):
-    def __init__(self, extractor, entries, total):
-        self._extractor = extractor
-        self._entries = entries
-        self._total = total
-
-    def combine(self, other):
-        # XXX: is not exact because some information is discarded,
-        # but at least it's associative and commutative
-
-        if self._extractor != other._extractor:
-            raise TypeError("can not combine features from different extractors")
-
-        entries = Counter()
-        total = 0
-
-        for k, v in self.items():
-            entries[k] += v
-            total += 1
-        for k, v in other.items():
-            entries[k] += v
-            total += 1
-
-        return TokenPairwiseAssociation(self._extractor, entries, total)

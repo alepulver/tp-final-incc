@@ -1,5 +1,4 @@
 import nltk
-from pyhashxx import hashxx
 
 
 class Tokenizer:
@@ -65,14 +64,3 @@ class CollapsingTokenizer(Tokenizer):
 
     def vocabulary(self):
         return self._vocabulary
-
-
-class HashingTokenizerFilter:
-    def __init__(self, tokenizer, seed=1234):
-        self._tokenizer = tokenizer
-        self._seed = seed
-
-    def tokens_from(self, book):
-        tokens = self._tokenizer.tokens_from(book)
-        func = lambda x: hashxx(x.encode(), seed=self._seed)
-        return map(func, tokens)

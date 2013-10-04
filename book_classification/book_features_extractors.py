@@ -1,10 +1,6 @@
 from collections import Counter, defaultdict
 import math
 import book_classification as bc
-import numpy
-import pyximport; pyximport.install()
-from . import optimized
-from scipy import sparse
 
 
 class Extractor:
@@ -88,56 +84,3 @@ class EntropiesExtractor(Extractor):
     def uuid(self):
         text = "%s(%s,%s)" % (self.__class__.__name__, self._tokenizer.uuid(), self._grouper.uuid())
         return bc.digest(text)
-
-
-class PairwiseAssociationExtractor(Extractor):
-    def __init__(self, tokenizer, grouper, weights, num_features=2**16):
-        self._tokenizer = tokenizer
-        self._grouper = grouper(len(weights))
-        self._weights = weights
-        self._num_features = num_features
-
-    def extract_from(self, book):
-        entries = numpy.zeros(self._num_features, dtype=self._weights.dtype)
-        total = 0
-
-        token_stream = self._tokenizer.tokens_from(book)
-        for words in self._grouper.parts_from(token_stream):
-            optimized.pairwise_association_window(entries, words, self._weights)
-            total += 1
-
-        entries /= total
-        return bc.TokenPairwiseAssociation(self, entries, total)
-
-    def uuid(self):
-        text = "%s(%s)" % (self.__class__.__name__, self._tokenizer.uuid(), self._grouper.uuid(), bc.digest(repr(weights)))
-        return bc.digest(text)
-
-
-class PairwiseEntropyExtractor(Extractor):
-    def __init__(self, tokenizer, grouper, weights, num_features=2**20):
-        self._tokenizer = tokenizer
-        self._grouper = grouper(len(weights))
-        self._weights = weights
-        self._num_features = num_features
-
-    def extract_from(self, book):
-        # XXX: maybe we should also multiply "center" by something,
-        # if we want a result closer to "mutual information"
-
-        #total_entries = sparse.dok_matrix((1, self._num_features))
-        total_entries = numpy.zeros(self._num_features)
-        total_count = 0
-
-        token_stream = self._tokenizer.tokens_from(book)
-        for words in self._grouper.parts_from(token_stream):
-            #center = words[len(words) // 2]
-
-            #indices = (center*1664525 + words) % total_entries.shape[1]
-            optimized.pairwise_entropy_window(total_entries, words, self._weights)
-
-            total_count += 1
-
-        total_entries /= total_count
-
-        return bc.TokenPairwiseAssociation(self, total_entries, total_count)
