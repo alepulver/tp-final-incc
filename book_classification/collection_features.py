@@ -27,7 +27,8 @@ class CollectionFeatures:
 
 
 class CollectionHierarchialFeatures:
-    def __init__(self, by_book, by_author, total):
+    def __init__(self, extractor, by_book, by_author, total):
+        self._extractor = extractor
         self._by_book = by_book
         self._by_author = by_author
         self._total = total
@@ -41,6 +42,24 @@ class CollectionHierarchialFeatures:
     def total(self):
         return self._total
 
+    def authors_features(self):
+        # XXX: merge with collectionextractor below, but use books since there is no collection of this
+
+        vocabulary = set()
+        for features in self._by_author.values():
+            vocabulary.update(features.keys())
+        encoder = bc.FeaturesEncoder(vocabulary)
+
+        num_rows = len(self._by_author)
+        num_cols = len(vocabulary)
+        matrix = sparse.dok_matrix((num_rows, num_cols))
+
+        for i, features in enumerate(self._by_author.values()):
+            for j, v in encoder.encode(features):
+                matrix[i, j] = v
+
+        return matrix.tocsc()
+
     @classmethod
     def from_book_collection(cls, collection, extractor):
         features_by_book = {}
@@ -52,7 +71,7 @@ class CollectionHierarchialFeatures:
             features_by_author[author] = reduce(lambda x,y: x.combine(y), features)
         features_total = reduce(lambda x,y: x.combine(y), features_by_author.values())
 
-        return cls(features_by_book, features_by_author, features_total)
+        return cls(extractor, features_by_book, features_by_author, features_total)
 
 
 class FeaturesEncoder:
@@ -88,6 +107,35 @@ class CollectionFeaturesEncoder:
                 matrix[i, j] = v
 
         return matrix.tocsc()
+
+    def vocabulary(self):
+        return self._features_encoder.vocabulary()
+
+
+class CachedCollectionFeaturesEncoder:
+    def __init__(self, encoder, cache=None):
+        self._encoder = encoder
+        self._cache = cache
+        if self._cache is None:
+            self._cache = {}
+
+    def encode(self, features):
+        num_cols = len(self._encoder.vocabulary())
+
+        rows = []
+        for book in features.collection().books():
+            if book.title() not in self._cache:
+                book_features = features.by_book(book)
+                matrix_row = sparse.dok_matrix((1, num_cols))
+
+                for j, v in self._encoder.encode(book_features):
+                    matrix_row[0, j] = v
+
+                self._cache[book.title()] = matrix_row.tocsr()
+
+            rows.append(self._cache[book.title()])
+
+        return sparse.vstack(rows, format='csr')
 
     def vocabulary(self):
         return self._features_encoder.vocabulary()

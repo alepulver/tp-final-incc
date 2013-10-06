@@ -33,11 +33,6 @@ class Book:
     def source(self):
         return self._source
 
-    def uuid(self):
-        #text = '%s(%s)' % (self.__class__.__name__, bc.digest(self._contents))
-        text = '%s(%s,%s,%s)' % (self.__class__.__name__, self.author(), self.title(), self.source())
-        return bc.digest(text)
-
     @staticmethod
     def from_str(string, source=None):
         text = string

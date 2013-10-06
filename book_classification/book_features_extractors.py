@@ -1,6 +1,7 @@
 from collections import Counter, defaultdict
 import math
 import book_classification as bc
+import shelve
 
 
 class Extractor:
@@ -18,10 +19,6 @@ class VocabulariesExtractor(Extractor):
             data[token] = True
         return bc.TokenVocabularies(self, data)
 
-    def uuid(self):
-        text = "%s(%s)" % (self.__class__.__name__, self._tokenizer.uuid())
-        return bc.digest(text)
-
 
 class FrequenciesExtractor(Extractor):
     def __init__(self, tokenizer):
@@ -37,10 +34,6 @@ class FrequenciesExtractor(Extractor):
             entries[token] /= total
         return bc.TokenFrequencies(self, entries, total)
 
-    def uuid(self):
-        text = "%s(%s)" % (self.__class__.__name__, self._tokenizer.uuid())
-        return bc.digest(text)
-
 
 class SeriesExtractor(Extractor):
     def __init__(self, tokenizer):
@@ -53,10 +46,6 @@ class SeriesExtractor(Extractor):
             series[token].append(index)
             total_tokens += 1
         return bc.TokenSeries(self, series, total_tokens)
-
-    def uuid(self):
-        text = "%s(%s)" % (self.__class__.__name__, self._tokenizer.uuid())
-        return bc.digest(text)
 
 
 class EntropiesExtractor(Extractor):
@@ -81,6 +70,47 @@ class EntropiesExtractor(Extractor):
 
         return bc.TokenEntropies(self, sum_freqs, sum_freqs_log, total)
 
-    def uuid(self):
-        text = "%s(%s,%s)" % (self.__class__.__name__, self._tokenizer.uuid(), self._grouper.uuid())
-        return bc.digest(text)
+
+class CachedExtractorWrapper:
+    def __init__(self, extractor):
+        self._extractor = extractor
+        self._cache = {}
+
+    def extract_from(self, book):
+        if book not in self._cache:
+            self._cache[book] = self._extractor.extract_from(book)
+
+        return self._cache[book]
+
+
+class PersistentExtractorWrapper:
+    def __init__(self, extractor, name):
+        self._extractor = extractor
+        self._name = name
+        self._cache = shelve.open(name)
+
+    def extract_from(self, book):
+        key = book.title()
+        if key not in self._cache:
+            self._cache[key] = self._extractor.extract_from(book)
+
+        return self._cache[key]
+
+    def close(self):
+        self._cache.close()
+
+
+class PersistentExtractorWrapper2:
+    def __enter__(self, extractor, name):
+        self._extractor = extractor
+        self._name = name
+        self._cache = shelve.open(name)
+
+    def extract_from(self, book):
+        if book not in self._cache:
+            self._cache[book] = self._extractor.extract_from(book)
+
+        return self._cache[book]
+
+    def __exit__(self, type, value, traceback):
+        self._cache.close()

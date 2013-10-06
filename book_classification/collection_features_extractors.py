@@ -12,7 +12,7 @@ class SerialCollectionFeaturesExtractor:
             result[book] = self._extractor.extract_from(book)
         return bc.CollectionFeatures(collection, self, result)
 
-    def encoder_for(self, collection):
+    def encoder_for(self, collection, cache=None):
         vocabulary = set()
         features = self.extract_from(collection)
 
@@ -20,7 +20,7 @@ class SerialCollectionFeaturesExtractor:
             vocabulary.update(features.by_book(book).keys())
 
         encoder = bc.FeaturesEncoder(vocabulary)
-        return bc.CollectionFeaturesEncoder(encoder)
+        return bc.CollectionFeaturesEncoder(encoder, cache)
 
 
 class CollectionFeaturesFilteringExtractor:
@@ -58,7 +58,7 @@ class ParallelCollectionFeaturesExtractor:
             result[book] = features
         return bc.CollectionFeatures(collection, self, result)
 
-    def encoder_for(self, collection):
+    def encoder_for(self, collection, cache=None):
         vocabulary = set()
         features = self.extract_from(collection)
 
@@ -66,7 +66,7 @@ class ParallelCollectionFeaturesExtractor:
             vocabulary.update(features.by_book(book).keys())
 
         encoder = bc.FeaturesEncoder(vocabulary)
-        return bc.CollectionFeaturesEncoder(encoder)
+        return bc.CollectionFeaturesEncoder(encoder, cache)
 
 
 CollectionFeaturesExtractor = SerialCollectionFeaturesExtractor

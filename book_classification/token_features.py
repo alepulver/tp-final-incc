@@ -78,8 +78,8 @@ class TokenFrequencies(MixinFeaturesDict, Features):
         self._total = total
 
     def combine(self, other):
-        if self._extractor != other._extractor:
-            raise TypeError("can not combine features from different extractors")
+        #if self._extractor != other._extractor:
+        #    raise TypeError("can not combine features from different extractors")
 
         data = Counter()
         total = self._total + other._total
@@ -124,8 +124,8 @@ class TokenEntropies(MixinFeaturesDict, Features):
         self._entries = self._sum_freqs
 
     def combine(self, other):
-        if self._extractor != other._extractor:
-            raise TypeError("can not combine features from different extractors")
+        #if self._extractor != other._extractor:
+        #    raise TypeError("can not combine features from different extractors")
 
         total = self._total + other._total
         sum_freqs = Counter()
