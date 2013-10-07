@@ -112,28 +112,48 @@ class ESOverAuthorsCount:
 
         num_books = config['num_books']
         collection = self._book_collection.selection().exclude_authors_below(num_books)
-        if len(collection.authors()) > config['num_authors']:
-            collection = collection.selection().sample_authors(config['num_authors'])
         total_authors = len(collection.authors())
-        results = []
 
-        # XXX: allow passing the total number of experiments to evaluate, and
-        # constants to ponderate between trials and author sets
-        for num_authors in range(2, total_authors+1):
-            num_sets = round(total_authors/num_authors)
-            num_trials = min(num_authors, config['num_trials'])
+        results = []
+        for num_authors in range(2, min(total_authors+1, config['num_authors'])):
             current_results = []
 
-            for _ in range(num_sets):
+            for _ in range(config['num_trials']):
+                current_collection = collection.selection().sample_authors_with_books(num_authors, num_books)
+                training, testing = current_collection.selection().split_per_author_percentage(config['training_percentage'])
+                self._classification_model.fit(training)
+                metric = self._classification_model.predict(testing).metric()
+                current_results.append(metric)
+
+            results.append(current_results)
+
+        return results
+
+
+class ESOverBiasedAuthorsCount:
+    def __init__(self, book_collection, classification_model):
+        self._book_collection = book_collection
+        self._classification_model = classification_model
+
+    def run_experiment(self, config):
+        for key in ['min_books', 'training_percentage', 'num_trials', 'num_authors']:
+            if key not in config:
+                raise Exception('missing required option %s' % key)
+
+        collection = self._book_collection.selection().exclude_authors_below(config['min_books'])
+        total_authors = len(collection.authors())
+
+        results = []
+        for num_authors in range(2, min(total_authors+1, config['num_authors'])):
+            current_results = []
+
+            for _ in range(config['num_trials']):
                 current_collection = collection.selection().sample_authors(num_authors)
-                for _ in range(num_trials):
-                    c = current_collection.selection().sample_books_per_author(num_books)
-                    c = c.selection().split_per_author_percentage(config['training_percentage'])
-                    training, testing = c
-                    #print("%s %s" % (len(training), len(testing)))
-                    self._classification_model.fit(training)
-                    metric = self._classification_model.predict(testing).metric()
-                    current_results.append(metric)
+                training, testing = current_collection.selection().split_per_author_percentage(config['training_percentage'])
+                self._classification_model.fit(training)
+                metric = self._classification_model.predict(testing).metric()
+                current_results.append(metric)
+
             results.append(current_results)
 
         return results
@@ -159,6 +179,35 @@ class ESOverTrainingProportion:
                     config['num_authors'], config['num_books'])
 
                 training, testing = collection.selection().split_per_author_percentage(percentage)
+                self._classification_model.fit(training)
+                metric = self._classification_model.predict(testing).metric()
+                trial_results.append(metric)
+
+            results.append(trial_results)
+
+        return results
+
+
+class ESOverBiasedTrainingProportion:
+    def __init__(self, book_collection, classification_model):
+        self._book_collection = book_collection
+        self._classification_model = classification_model
+
+    def run_experiment(self, config):
+        for key in ['min_books', 'num_authors', 'num_steps', 'num_trials']:
+            if key not in config:
+                raise Exception('missing required option %s' % key)
+
+        results = []
+        for i in range(1, config['num_steps']):
+            percentage = i/config['num_steps']
+
+            trial_results = []
+            for _ in range(config['num_trials']):
+                collection = self._book_collection.selection().exclude_authors_below(config['min_books'])
+                collection = collection.selection().sample_authors(config['num_authors'])
+                training, testing = collection.selection().split_per_author_percentage(percentage)
+
                 self._classification_model.fit(training)
                 metric = self._classification_model.predict(testing).metric()
                 trial_results.append(metric)

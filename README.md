@@ -44,7 +44,6 @@ ipython3 notebook --cache-size=0 --pylab inline
 
 ## Must
 
-- try keeping original author disproportions (not kfold instead of stratifiedkfold)
 - try ggplot2 and ggobi
 
 ## Later
