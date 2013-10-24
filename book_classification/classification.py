@@ -144,8 +144,10 @@ class ESOverBiasedAuthorsCount:
         total_authors = len(collection.authors())
 
         results = []
+        min_acc = []
         for num_authors in range(2, min(total_authors+1, config['num_authors'])):
             current_results = []
+            current_min_acc = []
 
             for _ in range(config['num_trials']):
                 current_collection = collection.selection().sample_authors(num_authors)
@@ -153,10 +155,16 @@ class ESOverBiasedAuthorsCount:
                 self._classification_model.fit(training)
                 metric = self._classification_model.predict(testing).metric()
                 current_results.append(metric)
+                current_min_acc.append(sum((len(current_collection.books_by(a))/len(current_collection))**2 for a in current_collection.authors()))
 
             results.append(current_results)
+            min_acc.append(current_min_acc)
 
+        self._min_acc = min_acc
         return results
+
+    def min_acc(self):
+        return self._min_acc
 
 
 class ESOverTrainingProportion:
@@ -199,10 +207,12 @@ class ESOverBiasedTrainingProportion:
                 raise Exception('missing required option %s' % key)
 
         results = []
+        min_acc = []
         for i in range(1, config['num_steps']):
             percentage = i/config['num_steps']
 
             trial_results = []
+            current_min_acc = []
             for _ in range(config['num_trials']):
                 collection = self._book_collection.selection().exclude_authors_below(config['min_books'])
                 collection = collection.selection().sample_authors(config['num_authors'])
@@ -211,7 +221,13 @@ class ESOverBiasedTrainingProportion:
                 self._classification_model.fit(training)
                 metric = self._classification_model.predict(testing).metric()
                 trial_results.append(metric)
+                current_min_acc.append(sum((len(collection.books_by(a))/len(collection))**2 for a in collection.authors()))
 
             results.append(trial_results)
+            min_acc.append(current_min_acc)
 
+        self._min_acc = min_acc
         return results
+
+    def min_acc(self):
+        return self._min_acc
